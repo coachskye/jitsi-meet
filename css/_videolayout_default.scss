@@ -9,6 +9,7 @@
     @include ltr;
     display: flex;
     height: 100%;
+    width: 100%;
 }
 
 #videospace {
@@ -112,10 +113,13 @@
     top: 0;
     left: 0;
     margin: 0 !important;
+    background: white;
+    
 }
 
 #largeVideoWrapper {
     box-shadow: 0 0 20px -2px #444;
+    background-color: white;
 }
 
 #largeVideo,
@@ -149,6 +153,7 @@
     z-index: $zindex1;
     width: 100%;
     height: 100%;
+ 
 }
 
 #etherpad {

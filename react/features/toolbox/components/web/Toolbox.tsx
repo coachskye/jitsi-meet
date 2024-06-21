@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { WithTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { makeStyles } from 'tss-react/mui';
-
+import Image from '../../../base/react/components/web/Image';
 import { IReduxState, IStore } from '../../../app/types';
 import { NotifyClickButton } from '../../../base/config/configType';
 import { VISITORS_MODE_BUTTONS } from '../../../base/config/constants';
@@ -18,6 +18,8 @@ import { isLocalParticipantModerator } from '../../../base/participants/function
 import ContextMenu from '../../../base/ui/components/web/ContextMenu';
 import { isReactionsButtonEnabled, isReactionsEnabled } from '../../../reactions/functions.web';
 import { iAmVisitor } from '../../../visitors/functions';
+// import supportimage from '../../../../../images/support.png';
+
 import {
     setHangupMenuVisible,
     setOverflowMenuVisible,
@@ -39,6 +41,9 @@ import HangupMenuButton from './HangupMenuButton';
 import { LeaveConferenceButton } from './LeaveConferenceButton';
 import OverflowMenuButton from './OverflowMenuButton';
 import Separator from './Separator';
+import { Button } from '@mui/material';
+import { ICON_CLOUD, support_icon, toolopenicon } from '../../../recording/components/Recording/styles.web';
+
 
 /**
  * The type of the React {@code Component} props of {@link Toolbox}.
@@ -167,6 +172,17 @@ const useStyles = makeStyles()(() => {
             padding: '16px',
             marginBottom: '4px'
         }
+        ,
+        extrabuttons:{
+            padding:'2px',
+            '@media (max-width: 500px)': {
+               
+                backgroundColor: '#141414'
+             
+                
+               
+            }
+        }
     };
 });
 
@@ -279,46 +295,39 @@ const Toolbox = ({
         });
     }
 
-    /**
-     * Returns all buttons that need to be rendered.
-     *
-     * @param {Object} state - The redux state.
-     * @returns {Object} The visible buttons arrays .
-     */
-    function getVisibleButtons() {
-        const buttons = getAllToolboxButtons(_customToolbarButtons);
+/**
+ * Returns all buttons that need to be rendered.
+ *
+ * @param {Object} state - The redux state.
+ * @returns {Object} The visible buttons arrays .
+ */
+function getVisibleButtons() {
+    const buttons = getAllToolboxButtons(_customToolbarButtons);
 
-        setButtonsNotifyClickMode(buttons);
-        const isHangupVisible = isToolbarButtonEnabled('hangup', _toolbarButtons);
-        const { order } = THRESHOLDS.find(({ width }) => _clientWidth > width)
-            || THRESHOLDS[THRESHOLDS.length - 1];
+    setButtonsNotifyClickMode(buttons);
+    const isHangupVisible = isToolbarButtonEnabled('hangup', _toolbarButtons);
+    const { order } = THRESHOLDS.find(({ width }) => _clientWidth > width)
+        || THRESHOLDS[THRESHOLDS.length - 1];
 
-        const keys = Object.keys(buttons);
+    const keys = Object.keys(buttons);
 
-        const filtered = [
-            ...order.map(key => buttons[key as keyof typeof buttons]),
-            ...Object.values(buttons).filter((button, index) => !order.includes(keys[index]))
-        ].filter(({ key, alias = NOT_APPLICABLE }) =>
-            !_jwtDisabledButtons.includes(key)
-            && (isToolbarButtonEnabled(key, _toolbarButtons) || isToolbarButtonEnabled(alias, _toolbarButtons))
-        );
+    const filtered = [
+        ...order.map(key => buttons[key as keyof typeof buttons]),
+        ...Object.values(buttons).filter((button, index) => !order.includes(keys[index]))
+    ].filter(({ key, alias = NOT_APPLICABLE }) =>
+        !_jwtDisabledButtons.includes(key)
+        && (isToolbarButtonEnabled(key, _toolbarButtons) || isToolbarButtonEnabled(alias, _toolbarButtons))
+    );
 
-        let sliceIndex = _overflowDrawer || _reactionsButtonEnabled ? order.length + 2 : order.length + 1;
+    // Ensure only 4 buttons are shown
+    const sliceIndex = 2;
 
-        if (isHangupVisible) {
-            sliceIndex -= 1;
-        }
+    return {
+        mainMenuButtons: filtered.slice(0, sliceIndex),
+        overflowMenuButtons: filtered.slice(sliceIndex)
+    };
+}
 
-        // This implies that the overflow button will be displayed, so save some space for it.
-        if (sliceIndex < filtered.length) {
-            sliceIndex -= 1;
-        }
-
-        return {
-            mainMenuButtons: filtered.slice(0, sliceIndex),
-            overflowMenuButtons: filtered.slice(sliceIndex)
-        };
-    }
 
     /**
      * Dispatches an action signaling the toolbar is not being hovered.
@@ -367,7 +376,12 @@ const Toolbox = ({
                 && (raiseHandInOverflowMenu || _isNarrowLayout || _isMobile))
             || overflowMenuButtons.some(({ key }) => key === 'reactions');
         const showRaiseHandInReactionsMenu = showReactionsInOverflowMenu && raiseHandInOverflowMenu;
-
+   const handleclicktoolopen =()=>{
+    console.log('Clicked New Tool Button')
+   }
+   const handleclicksupport =()=>{
+    console.log('Clicked Support Button')
+   }
         return (
             <div className = { containerClassName }>
                 <div
@@ -454,8 +468,20 @@ const Toolbox = ({
                                     notifyMode = { getButtonNotifyMode('hangup', _buttonsWithNotifyClick) }
                                     visible = { isToolbarButtonEnabled('hangup', _toolbarButtons) } />
                         )}
+
+                         
                     </div>
+                    <div className={classes.extrabuttons}>
+                        {/* <Button title='Click me'/> */}
+                        {/* <button title='click me' onClick={handleclick} style={{width:50 , height:50, position:'relative' , zIndex:2342332}}/> */}
+                        <Image  onClick={handleclicktoolopen}width={46} height={46}  src = { toolopenicon } style={{marginRight:'1rem' , cursor:'pointer'}}  />
+
+                        <Image  onClick={handleclicksupport}width={135} height={44} src = { support_icon } style={{marginRight:'1rem' ,cursor:'pointer' }}  />
+                        
+                    </div>
+                   
                 </div>
+              
             </div>
         );
     }

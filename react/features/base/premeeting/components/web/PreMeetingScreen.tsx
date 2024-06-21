@@ -92,11 +92,13 @@ const useStyles = makeStyles()(theme => {
     return {
         container: {
             height: '100%',
-            position: 'absolute',
-            inset: '0 0 0 0',
+            width:'100%',
+            justifyContent:'center',
+            alignContent:'center',
+            
             display: 'flex',
-            backgroundColor: theme.palette.ui01,
-            zIndex: 252,
+            backgroundColor: 'white',
+            zIndex: 25243,
 
             '@media (max-width: 720px)': {
                 flexDirection: 'column-reverse'
@@ -107,13 +109,14 @@ const useStyles = makeStyles()(theme => {
             flexDirection: 'column',
             alignItems: 'center',
             flexShrink: 0,
-            boxSizing: 'border-box',
-            margin: '0 48px',
+            // boxSizing: 'border-box',
+            // margin: '0 48px',
             padding: '24px 0 16px',
             position: 'relative',
-            width: '300px',
+            width: '100%',
             height: '100%',
             zIndex: 252,
+            backgroundColor:'white',
 
             '@media (max-width: 720px)': {
                 height: 'auto',
@@ -139,12 +142,13 @@ const useStyles = makeStyles()(theme => {
         },
         title: {
             ...withPixelLineHeight(theme.typography.heading4),
-            color: `${theme.palette.text01}!important`,
+            color: `#002746`,
             marginBottom: theme.spacing(3),
             textAlign: 'center',
-
+            fontSize:'1.5rem',
+         fontFamily:"Tiempos Fine",
             '@media (max-width: 400px)': {
-                display: 'none'
+                fontSize:'1.5rem',
             }
         },
         roomName: {
@@ -175,7 +179,7 @@ const PreMeetingScreen = ({
 }: IProps) => {
     const { classes } = useStyles();
     const style = _premeetingBackground ? {
-        background: _premeetingBackground,
+        background: 'white',
         backgroundPosition: 'center',
         backgroundSize: 'cover'
     } : {};
@@ -184,28 +188,28 @@ const PreMeetingScreen = ({
         <div className = { clsx('premeeting-screen', classes.container, className) }>
             <div style = { style }>
                 <div className = { classes.content }>
-                    <ConnectionStatus />
+                    {/* <ConnectionStatus /> */}
 
                     <div className = { classes.contentControls }>
                         <h1 className = { classes.title }>
                             {title}
                         </h1>
-                        {_roomName && (
+                        {/* {_roomName && (
                             <span className = { classes.roomName }>
                                 {_roomName}
                             </span>
-                        )}
+                        )} */}
                         {children}
-                        {_buttons.length && <Toolbox toolbarButtons = { _buttons } />}
+                        {/* {_buttons.length && <Toolbox toolbarButtons = { _buttons } />} */}
                         {skipPrejoinButton}
-                        {showUnsafeRoomWarning && <UnsafeRoomWarning />}
-                        {showDeviceStatus && <DeviceStatus />}
+                        {/* {showUnsafeRoomWarning && <UnsafeRoomWarning />}
+                        {showDeviceStatus && <DeviceStatus />} */}
                     </div>
                 </div>
             </div>
-            <Preview
+            {/* <Preview
                 videoMuted = { videoMuted }
-                videoTrack = { videoTrack } />
+                videoTrack = { videoTrack } /> */}
         </div>
     );
 };

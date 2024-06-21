@@ -58,20 +58,21 @@ function Preview(props: IProps) {
 
     return (
         <div id = 'preview'>
-            {!videoMuted && videoTrack
-                ? (
+          { videoTrack ?
+                 (
                     <Video
                         className = { className }
                         id = 'prejoinVideo'
                         videoTrack = {{ jitsiTrack: videoTrack }} />
+                        
                 )
-                : (
-                    <Avatar
-                        className = 'premeeting-screen-avatar'
-                        displayName = { name }
-                        participantId = { _participantId }
-                        size = { 200 } />
-                )}
+                :(
+                    <Video
+                    className = { className }
+                    id = 'prejoinVideo'
+                    />
+                )
+            }
         </div>
     );
 }

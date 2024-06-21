@@ -1,9 +1,9 @@
 /* eslint-disable react/jsx-no-bind */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { connect, useDispatch } from 'react-redux';
 import { makeStyles } from 'tss-react/mui';
-
+import cong from '../../../../firebaseconfig';
 import { IReduxState } from '../../../app/types';
 import Avatar from '../../../base/avatar/components/Avatar';
 import { isNameReadOnly } from '../../../base/config/functions.web';
@@ -38,6 +38,13 @@ import {
 import { hasDisplayName } from '../../utils';
 
 import JoinByPhoneDialog from './dialogs/JoinByPhoneDialog';
+import Video from '../../../base/media/components/web/Video';
+import Preview from '../../../base/premeeting/components/web/Preview';
+import AudioMuteButton from '../../../toolbox/components/web/AudioMuteButton';
+import VideoMuteButton from '../../../toolbox/components/web/VideoMuteButton';
+import { Checkbox } from '@mui/material';
+
+import { getDatabase, ref, onValue } from "firebase/database";
 
 interface IProps {
 
@@ -137,6 +144,71 @@ const useStyles = makeStyles()(theme => {
         inputContainer: {
             width: '100%'
         },
+        joinbutton:{
+            backgroundColor:'#FFAF2E',
+            color:'black',
+            width:'10vw',
+            height:'9vh',
+            textAlign:'center',
+            padding:10,
+            fontWeight:'200',
+            fontSize:'1vw',
+            '@media (max-width: 730px)': {
+                height:'5vh',
+                width: '12vw',
+                fontSize:'1.5vw'
+            },
+            '@media (max-width: 480px)': {
+                height:'5vh',
+                width: '23vw',
+                fontSize:'2.5vw'
+            }
+            
+            
+        },
+        
+        buttoncontainer:{
+            display:'flex' , 
+            flexDirection:'row' , 
+            position:'absolute' , 
+            marginTop:'27%',
+            '@media (max-width: 480px)': {
+                marginTop:'10rem',
+            }
+        },
+        inputcontainer2:{
+            width: '50%',
+            height: '100%', 
+            padding: '1%', 
+            display: 'flex', 
+            flexDirection: 'row' ,
+            '@media (max-width: 480px)': {
+                flexDirection: 'column' ,
+                width: '100%',
+                padding: '2%',
+                margin: 'auto'
+            }
+        },
+        inputcontainer3:{
+            width: '50%',
+            height: '100%' ,
+            '@media (max-width: 480px)': {
+               
+                width: '100%',
+                
+               
+            }
+        },
+        Audiotextcontainer:{
+            width:'50%' , 
+            height:'100%',
+            '@media (max-width: 480px)': {
+               
+                width: '90%',
+                margin: 'auto',
+                padding: '3%'
+            }
+        },
 
         input: {
             width: '100%',
@@ -150,7 +222,9 @@ const useStyles = makeStyles()(theme => {
         avatarContainer: {
             display: 'flex',
             alignItems: 'center',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            width:200,
+            height:200
         },
 
         avatar: {
@@ -221,9 +295,68 @@ const Prejoin = ({
         () => showDisplayNameField && showErrorOnJoin,
         [ showDisplayNameField, showErrorOnJoin ]);
     const [ showJoinByPhoneButtons, setShowJoinByPhoneButtons ] = useState(false);
+    const [data, setData] = useState([]);
     const { classes } = useStyles();
     const { t } = useTranslation();
     const dispatch = useDispatch();
+
+    const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+    const [devices2, setDevices2] = useState<MediaDeviceInfo[]>([]);
+    const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+    const [selectedDeviceId2, setSelectedDeviceId2] = useState<string>('');
+
+    useEffect(() => {
+        navigator.mediaDevices.enumerateDevices().then(deviceInfos => {
+            const audioInputDevices = deviceInfos.filter(device => device.kind === 'audioinput');
+            setDevices(audioInputDevices);
+            if (audioInputDevices.length > 0) {
+                setSelectedDeviceId(audioInputDevices[0].deviceId);
+            }
+        });
+    }, []);
+
+
+    useEffect(() => {
+        
+        const database = getDatabase(cong);
+        
+        // Reference to the specific collection in the database
+        const collectionRef = ref(database, "testing");
+    
+        // Function to fetch data from the database
+        const fetchData = () => {
+          // Listen for changes in the collection
+          onValue(collectionRef, (snapshot) => {
+            const dataItem = snapshot.val();
+    
+            // Check if dataItem exists
+            if (dataItem) {
+              // Convert the object values into an array
+              const displayItem = Object.values(dataItem);
+              setData(displayItem);
+            }
+          });
+        };
+    
+        // Fetch data when the component mounts
+        fetchData();
+      }, []);
+    useEffect(() => {
+        navigator.mediaDevices.enumerateDevices().then(deviceInfos => {
+            const VideoInputDevices = deviceInfos.filter(device => device.kind === 'videoinput');
+            setDevices2(VideoInputDevices);
+            if (VideoInputDevices.length > 0) {
+                setSelectedDeviceId(VideoInputDevices[0].deviceId);
+            }
+        });
+    }, []);
+
+    const handleDeviceChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedDeviceId(event.target.value);
+    };
+    const handleDeviceChange2 = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedDeviceId2(event.target.value);
+    };
 
     /**
      * Handler for the join button.
@@ -378,84 +511,151 @@ const Prejoin = ({
     const hasExtraJoinButtons = Boolean(extraButtonsToRender.length);
 
     return (
+        <>
         <PreMeetingScreen
             showDeviceStatus = { deviceStatusVisible }
             showUnsafeRoomWarning = { showUnsafeRoomWarning }
-            title = { t('prejoin.joinMeeting') }
+            title = {'Coaching session with Caitlin Decker' }
             videoMuted = { !showCameraPreview }
             videoTrack = { videoTrack }>
-            <div
+            {/* <div
                 className = { classes.inputContainer }
                 data-testid = 'prejoin.screen'>
-                {showDisplayNameField ? (<Input
-                    accessibilityLabel = { t('dialog.enterDisplayName') }
-                    autoComplete = { 'name' }
-                    autoFocus = { true }
-                    className = { classes.input }
-                    error = { showErrorOnField }
-                    id = 'premeeting-name-input'
-                    onChange = { setName }
-                    onKeyPress = { showUnsafeRoomWarning && !unsafeRoomConsent ? undefined : onInputKeyPress }
-                    placeholder = { t('dialog.enterDisplayName') }
-                    readOnly = { readOnlyName }
-                    value = { name } />
-                ) : (
-                    <div className = { classes.avatarContainer }>
-                        <Avatar
-                            className = { classes.avatar }
-                            displayName = { name }
-                            participantId = { participantId }
-                            size = { 72 } />
-                        {isDisplayNameVisible && <div className = { classes.avatarName }>{name}</div>}
-                    </div>
-                )}
+               
+              
+         
 
                 {showErrorOnField && <div
                     className = { classes.error }
                     data-testid = 'prejoin.errorMessage'>{t('prejoin.errorMissingName')}</div>}
 
-                <div className = { classes.dropdownContainer }>
-                    <Popover
-                        content = { hasExtraJoinButtons && <div className = { classes.dropdownButtons }>
-                            {extraButtonsToRender.map(({ key, ...rest }) => (
-                                <Button
-                                    disabled = { joiningInProgress || showErrorOnField }
-                                    fullWidth = { true }
-                                    key = { key }
-                                    type = { BUTTON_TYPES.SECONDARY }
-                                    { ...rest } />
-                            ))}
-                        </div> }
-                        onPopoverClose = { onDropdownClose }
-                        position = 'bottom'
-                        trigger = 'click'
-                        visible = { showJoinByPhoneButtons }>
-                        <ActionButton
-                            OptionsIcon = { showJoinByPhoneButtons ? IconArrowUp : IconArrowDown }
-                            ariaDropDownLabel = { t('prejoin.joinWithoutAudio') }
-                            ariaLabel = { t('prejoin.joinMeeting') }
+              
+                        
+                 
+                
+            </div> */}
+               
+                <>
+               
+                <Preview
+                videoTrack = { videoTrack } />
+               
+                <div className={classes.buttoncontainer}>
+                <AudioMuteButton
+                styles = {{}} />
+            <VideoMuteButton
+                styles = { {} } />
+                </div>
+                </>
+                {/* <div>
+      <h1>Data from database:</h1>
+      <ul>
+        {data}
+      </ul>
+    </div> */}
+                
+                
+                    <div className={classes.inputcontainer2}>
+            <div className={classes.inputcontainer3}>
+                <p style={{ color: '#52596A',fontSize:'1rem' }}>MICROPHONE</p>
+                <select 
+                    value={selectedDeviceId} 
+                    onChange={handleDeviceChange}
+                    style={{ 
+                        width: '70%', 
+                        height: '30px', 
+                        padding: '5px', 
+                        borderRadius: '5px',
+                        borderColor: '#52596A',
+                        color: selectedDeviceId === '' ? '#FFAF2E' : '#52596A'
+                    }}>
+                    {devices.map(device => (
+                        <option 
+                            key={device.deviceId} 
+                            value={device.deviceId}
+                            style={{ 
+                                color: device.deviceId === selectedDeviceId ? '#FFAF2E' : '#52596A',
+                                paddingLeft: device.deviceId === selectedDeviceId ? '20px' : '5px',
+                                background: device.deviceId === selectedDeviceId ? 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEiIGhlaWdodD0iMTEiIHZpZXdCb3g9IjAgMCAxMSAxMSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEgN0w0IDlMMTAgMU03IDlMMTAgMTEgNCAxMSAxIDciIGZpbGw9IiNGMkQ1MTAiIHN0cm9rZT0iIzFFNkJGNCIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+Cg==") no-repeat left center' : 'none',
+                                backgroundSize: '12px',
+                            }}>
+                            {device.label || `Microphone ${device.deviceId}`}
+                        </option>
+                    ))}
+                </select>
+            </div>
+            <div className={classes.inputcontainer3}>
+                <p style={{ color: '#52596A' , fontSize:'1rem'  }}>CAMERA</p>
+                <select 
+                    value={selectedDeviceId2} 
+                    onChange={handleDeviceChange2}
+                    style={{ 
+                        width: '70%',
+                        height: '30px', 
+                        padding: '5px', 
+                        borderRadius: '5px',
+                        borderColor: '#52596A',
+                        color: selectedDeviceId2 === '' ? '#FFAF2E' : '#52596A'
+                    }}>
+                    {devices2.map(device => (
+                        <option 
+                            key={device.deviceId} 
+                            value={device.deviceId}
+                            style={{ 
+                                color: device.deviceId === selectedDeviceId2 ? '#FFAF2E' : '#52596A',
+                                paddingLeft: device.deviceId === selectedDeviceId2 ? '20px' : '5px',
+                                background: device.deviceId === selectedDeviceId2 ? 'url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEiIGhlaWdodD0iMTEiIHZpZXdCb3g9IjAgMCAxMSAxMSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEgN0w0IDlMMTAgMU03IDlMMTAgMTEgNCAxMSAxIDciIGZpbGw9IiNGMkQ1MTAiIHN0cmU9IiMxRTZCRjQiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=") no-repeat left center' : 'none',
+                                backgroundSize: '12px',
+                            }}>
+                            {device.label || `Camera ${device.deviceId}`}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        </div>
+                    <div className={classes.Audiotextcontainer}>
+                   
+                     <p style={{color:'#52596A' , fontSize:'1rem'}}>  Audio or video not working? Allow microphone and camera permissions in your <span style={{color:'#FFAF2E'}}>Support Page</span></p>
+                    </div>
+
+        
+                <ActionButton
+                          
+                            className={classes.joinbutton}
+                            ariaLabel = { 'Join Now' }
                             ariaPressed = { showJoinByPhoneButtons }
                             disabled = { joiningInProgress
                                 || (showUnsafeRoomWarning && !unsafeRoomConsent)
                                 || showErrorOnField }
-                            hasOptions = { hasExtraJoinButtons }
+                        
                             onClick = { onJoinButtonClick }
-                            onOptionsClick = { onOptionsClick }
+                          
                             role = 'button'
                             tabIndex = { 0 }
                             testId = 'prejoin.joinMeeting'
                             type = 'primary'>
-                            {t('prejoin.joinMeeting')}
+                            {'JOIN NOW'}
+                            
                         </ActionButton>
-                    </Popover>
-                </div>
-            </div>
+
+                    
+                       
             {showDialog && (
                 <JoinByPhoneDialog
                     joinConferenceWithoutAudio = { joinConferenceWithoutAudio }
                     onClose = { closeDialog } />
             )}
+            <div style={{width:'100%'}}>
+                <div style={{width:'100%' , height:2 , border:'#E5E3DD 1px solid', backgroundColor:'#E5E3DD'}}></div>
+                <div style={{display:'flex', flexDirection:'row',  alignItems: 'center' }}>
+                    <Checkbox/>
+                <p style={{textAlign:'center' , margin:'0'  , color:'#52596A'}}>Always preview video when joining a call</p>
+                </div>
+                
+            </div>
         </PreMeetingScreen>
+       
+        </>
     );
 };
 

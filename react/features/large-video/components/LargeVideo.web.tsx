@@ -196,7 +196,9 @@ class LargeVideo extends Component<IProps> {
             _whiteboardReady
         } = this.props;
         const style = this._getCustomStyles();
-        const className = `videocontainer${_isChatOpen ? ' shift-right' : ''}`;
+        // const className = `videocontainer${_isChatOpen ? ' shift-right' : ''}`;
+        const className = ``;
+        
 
         return (
             <div

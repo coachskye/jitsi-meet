@@ -80,9 +80,10 @@
 
 .toolbox-content-wrapper {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     margin: 0 auto;
-    max-width: 100%;
+    // max-width: 100%;
+    width: 100%;
     pointer-events: all;
     border-radius: 6px;
 

@@ -237,6 +237,7 @@ class Conference extends AbstractConference<IProps, any> {
 
                     { _showPrejoin || _showLobby || (
                         <>
+                        
                             <span
                                 aria-level = { 1 }
                                 className = 'sr-only'
@@ -244,9 +245,10 @@ class Conference extends AbstractConference<IProps, any> {
                                 { t('toolbar.accessibilityLabel.heading') }
                             </span>
                             <Toolbox />
+                           
                         </>
                     )}
-
+                       
                     {_notificationsVisible && !_isAnyOverlayVisible && (_overflowDrawer
                         ? <JitsiPortal className = 'notification-portal'>
                             {this.renderNotificationsContainer({ portal: true })}
@@ -260,6 +262,7 @@ class Conference extends AbstractConference<IProps, any> {
                     { _showLobby && <LobbyScreen />}
                 </div>
                 <ParticipantsPane />
+                
             </div>
         );
     }
