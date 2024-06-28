@@ -1,20 +1,25 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyCxgUpJJ9DeeUwR1XoXd_OCKBVXkUDPggA",
-  authDomain: "skye-e49a2.firebaseapp.com",
-  databaseURL: "https://skye-e49a2-default-rtdb.firebaseio.com",
-  projectId: "skye-e49a2",
-  storageBucket: "skye-e49a2.appspot.com",
-  messagingSenderId: "732233128466",
-  appId: "1:732233128466:web:8c03078ac23c3d15be16cb"
+  apiKey: "AIzaSyAz_6fd-Oyh9gce0kV_bP8_YFFNzovcn3U",
+  authDomain: "skye-7aff5.firebaseapp.com",
+  databaseURL: "https://skye-7aff5.firebaseio.com",
+  projectId: "skye-7aff5",
+  storageBucket: "skye-7aff5.appspot.com",
+  messagingSenderId: "873721678209",
+  appId: "1:873721678209:web:0616525d64830ddf71c080",
+  measurementId: "G-KVTT2TGC0E"
 };
 
 // Initialize Firebase
 const cong = initializeApp(firebaseConfig);
 
-export default cong;
+export const db = getFirestore(cong);
+
+// export default cong;

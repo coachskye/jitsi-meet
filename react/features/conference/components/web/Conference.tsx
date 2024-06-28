@@ -1,7 +1,7 @@
 import _ from 'lodash';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { WithTranslation } from 'react-i18next';
-import { connect as reactReduxConnect } from 'react-redux';
+import { connect as reactReduxConnect, useSelector } from 'react-redux';
 
 // @ts-expect-error
 import VideoLayout from '../../../../../modules/UI/videolayout/VideoLayout';
@@ -39,6 +39,13 @@ import type { AbstractProps } from '../AbstractConference';
 
 import ConferenceInfo from './ConferenceInfo';
 import { default as Notice } from './Notice';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { isNoiseSuppressionEnabled } from '../../../noise-suppression/functions';
+import { db } from '../../../../firebaseconfig';
+import { setNoiseSuppressionEnabledState } from '../../../noise-suppression/actions';
+import { IJitsiConference } from '../../../base/conference/reducer';
+import { MEDIA_TYPE } from '../../../base/media/constants';
+import { isLocalTrackMuted } from '../../../base/tracks/functions.any';
 
 /**
  * DOM events for when full screen mode has changed. Different browsers need
@@ -100,6 +107,16 @@ interface IProps extends AbstractProps, WithTranslation {
     _showPrejoin: boolean;
 
     dispatch: IStore['dispatch'];
+
+    _noiseSuppressionEnabled : boolean;
+
+    _qualityVideo: number;
+
+    conference : IJitsiConference;
+
+    _audioMuted : boolean;
+
+    _videomuted : boolean;
 }
 
 /**
@@ -205,10 +222,98 @@ class Conference extends AbstractConference<IProps, any> {
             _overflowDrawer,
             _showLobby,
             _showPrejoin,
+            _noiseSuppressionEnabled,
+            _qualityVideo,
+            conference,
+            _audioMuted,
+            _videomuted,
             t
         } = this.props;
+        const currentUrl = window.location.href;
 
+        // Create a URL object
+        const url = new URL(currentUrl);
+        
+        // Extract the path name (which includes '/LogicalNotebooksEncounterTenderly')
+        const pathName = url.pathname;
+        
+        console.log('is Audio Muted inside the Conference -->' , conference?.isStartAudioMuted());
+        // Split the path name by '/' and get the last segment
+        const segments = pathName.split('/').filter(segment => segment);
+        const roomName = segments[segments.length - 1];
+        // const noiseSuppressionEnabled = useSelector(isNoiseSuppressionEnabled);
+ console.log('NoiseSupression Value is in Conference -->' , _noiseSuppressionEnabled);
+      console.log('Quality Video is in Conference -->' , _qualityVideo);
+            const updateDocument = async () => {
+                try {
+                    // Check if document with roomName exists
+                    const docRef = doc(db, 'Jitsiuserdata', roomName);
+                    const docSnap = await getDoc(docRef);
+        
+                    if (docSnap.exists()) {
+                        // Document exists, proceed to update it
+                        await updateDoc(docRef, {
+                            noiseCancellation: _noiseSuppressionEnabled,
+                            VideoQuality : _qualityVideo,
+                            isAudioMuted : _audioMuted,
+                            isVideoMuted : _videomuted,
+                            updatedAt: new Date()  // Example: Adding updatedAt field
+                        });
+                        console.log('Document updated:', roomName);
+                    } else {
+                        console.log('Document does not exist:', roomName);
+                        // Optionally handle case where document does not exist
+                        // For example, show an error message to the user
+                    }
+                } catch (error) {
+                    console.error('Error updating document:', error);
+                }
+            };
+    
+            updateDocument();
+        
+
+      
+            const addDocument = async () => {
+                try {
+                    // Check if document with roomName already exists
+                    const docRef = doc(db, 'Jitsiuserdata', roomName);
+                    const docSnap = await getDoc(docRef);
+        
+                    if (docSnap.exists()) {
+                        console.log('Document already exists:', roomName);
+                        // Optionally handle case where document already exists
+                        return;
+                    }
+        
+                    // Document does not exist, proceed to add it
+                    await setDoc(docRef, {
+                      
+                        noiseCancellation: _noiseSuppressionEnabled,
+                        VideoQuality : _qualityVideo,
+                        isAudioMuted : _audioMuted,
+                        isVideoMuted : _videomuted,
+                        createdAt: new Date()
+                    });
+                    console.log('Document written with ID:', roomName);
+                } catch (error) {
+                    console.error('Error adding document:', error);
+                }
+            };
+    
+    
+           
+            if(roomName){
+                addDocument();
+            }
+
+          
+      
+        
         return (
+
+            
+        
             <div
                 id = 'layout_wrapper'
                 onMouseEnter = { this._onMouseEnter }
@@ -384,6 +489,11 @@ class Conference extends AbstractConference<IProps, any> {
     }
 }
 
+
+      
+
+
+
 /**
  * Maps (parts of) the Redux state to the associated props for the
  * {@code Conference} component.
@@ -395,6 +505,10 @@ class Conference extends AbstractConference<IProps, any> {
 function _mapStateToProps(state: IReduxState) {
     const { backgroundAlpha, mouseMoveCallbackInterval } = state['features/base/config'];
     const { overflowDrawer } = state['features/toolbox'];
+    const noiseSuppressionEnabled = isNoiseSuppressionEnabled(state);
+    const { preferredVideoQuality } = state['features/video-quality'];
+    const _audioMuted = isLocalTrackMuted(state['features/base/tracks'], MEDIA_TYPE.AUDIO);
+    const _videomuted = isLocalTrackMuted(state['features/base/tracks'], MEDIA_TYPE.VIDEO);
 
     return {
         ...abstractMapStateToProps(state),
@@ -405,8 +519,16 @@ function _mapStateToProps(state: IReduxState) {
         _overflowDrawer: overflowDrawer,
         _roomName: getConferenceNameForTitle(state),
         _showLobby: getIsLobbyVisible(state),
-        _showPrejoin: isPrejoinPageVisible(state)
+        _showPrejoin: isPrejoinPageVisible(state),
+        _noiseSuppressionEnabled: noiseSuppressionEnabled,
+        _qualityVideo: preferredVideoQuality,
+        _audioMuted:_audioMuted,
+        _videomuted:_videomuted
     };
 }
 
 export default reactReduxConnect(_mapStateToProps)(translate(Conference));
+function dispatch(arg0: any) {
+    throw new Error('Function not implemented.');
+}
+

@@ -1,9 +1,9 @@
 /* eslint-disable react/jsx-no-bind */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { connect, useDispatch } from 'react-redux';
+import { connect, useDispatch, useSelector } from 'react-redux';
 import { makeStyles } from 'tss-react/mui';
-import cong from '../../../../firebaseconfig';
+import cong, { db } from '../../../../firebaseconfig';
 import { IReduxState } from '../../../app/types';
 import Avatar from '../../../base/avatar/components/Avatar';
 import { isNameReadOnly } from '../../../base/config/functions.web';
@@ -16,7 +16,7 @@ import PreMeetingScreen from '../../../base/premeeting/components/web/PreMeeting
 import { updateSettings } from '../../../base/settings/actions';
 import { getDisplayName } from '../../../base/settings/functions.web';
 import { withPixelLineHeight } from '../../../base/styles/functions.web';
-import { getLocalJitsiVideoTrack } from '../../../base/tracks/functions.web';
+import { getLocalJitsiVideoTrack, isLocalTrackMuted } from '../../../base/tracks/functions.web';
 import Button from '../../../base/ui/components/web/Button';
 import Input from '../../../base/ui/components/web/Input';
 import { BUTTON_TYPES } from '../../../base/ui/constants.any';
@@ -45,6 +45,17 @@ import VideoMuteButton from '../../../toolbox/components/web/VideoMuteButton';
 import { Checkbox } from '@mui/material';
 
 import { getDatabase, ref, onValue } from "firebase/database";
+import { getFirestore, doc, getDoc, addDoc, collection, setDoc, updateDoc } from 'firebase/firestore';
+import { IRoomsInfo } from '../../../breakout-rooms/types';
+import { IJitsiParticipant } from '../../../base/participants/types';
+import { getRoomsInfo } from '../../../breakout-rooms/functions';
+import { setNoiseSuppressionEnabledState } from '../../../noise-suppression/actions';
+import { isNoiseSuppressionEnabled } from '../../../noise-suppression/functions';
+import { setPreferredVideoQuality } from '../../../video-quality/actions';
+import { IJitsiConference } from '../../../base/conference/reducer';
+import { setAudioMuted, setVideoMuted } from '../../../base/media/actions';
+import { IGUMPendingState } from '../../../base/media/types';
+import { MEDIA_TYPE } from '../../../base/media/constants';
 
 interface IProps {
 
@@ -137,6 +148,17 @@ interface IProps {
      * The JitsiLocalTrack to display.
      */
     videoTrack?: Object;
+
+    _getroominfo : IRoomsInfo;
+    
+    _connectionstring : IJitsiParticipant,
+    
+    conference: IJitsiConference,
+
+    _gumPending: IGUMPendingState,
+
+    _audioMuted : boolean,
+    _videomuted: boolean
 }
 
 const useStyles = makeStyles()(theme => {
@@ -286,7 +308,13 @@ const Prejoin = ({
     showUnsafeRoomWarning,
     unsafeRoomConsent,
     updateSettings: dispatchUpdateSettings,
-    videoTrack
+    videoTrack,
+    _getroominfo,
+    _connectionstring,
+    conference,
+    _gumPending,
+    _audioMuted,
+    _videomuted
 }: IProps) => {
     const showDisplayNameField = useMemo(
         () => isDisplayNameVisible && !readOnlyName,
@@ -296,6 +324,7 @@ const Prejoin = ({
         [ showDisplayNameField, showErrorOnJoin ]);
     const [ showJoinByPhoneButtons, setShowJoinByPhoneButtons ] = useState(false);
     const [data, setData] = useState([]);
+    const [noiseCancellation, setNoiseCancellation] = useState(false);
     const { classes } = useStyles();
     const { t } = useTranslation();
     const dispatch = useDispatch();
@@ -304,6 +333,52 @@ const Prejoin = ({
     const [devices2, setDevices2] = useState<MediaDeviceInfo[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
     const [selectedDeviceId2, setSelectedDeviceId2] = useState<string>('');
+
+
+    if(_connectionstring){
+        const jid = _connectionstring?.getJid();
+        console.log('Connection Jid is -->' , jid);
+    }
+
+    console.log('Value of Room state -->' , _getroominfo);
+
+     console.log(' Audio Muted status 12324 -->' , _audioMuted);
+
+     console.log(' Video Muted status 35454 -->' , _videomuted);
+    const currentUrl = window.location.href;
+
+        // Create a URL object
+        const url = new URL(currentUrl);
+        
+        // Extract the path name (which includes '/LogicalNotebooksEncounterTenderly')
+        const pathName = url.pathname;
+        
+        // Split the path name by '/' and get the last segment
+        const segments = pathName.split('/').filter(segment => segment);
+        const roomName = segments[segments.length - 1];
+        const noiseSuppressionEnabled = useSelector(isNoiseSuppressionEnabled);
+
+
+console.log('Noise Cancellation Value is -->' , noiseSuppressionEnabled)
+console.log('Room Name is -->',roomName);
+
+// const audioMuted = Boolean(conference.isStartAudioMuted());
+// const videoMuted = Boolean(conference.isStartVideoMuted());
+
+
+
+// console.log('Audio Muted Value is -->' , audioMuted);
+// console.log('Video Muted Value is -->' , videoMuted);
+// useEffect(()=>{
+//     dispatch(setAudioMuted(true));
+//     dispatch(setVideoMuted(true));
+
+    
+// },[])
+
+
+
+
 
     useEffect(() => {
         navigator.mediaDevices.enumerateDevices().then(deviceInfos => {
@@ -315,32 +390,41 @@ const Prejoin = ({
         });
     }, []);
 
-
+   // Assuming NoiseCancellation is a boolean
+  console.log('Participant id is -->', participantId)
     useEffect(() => {
-        
-        const database = getDatabase(cong);
-        
-        // Reference to the specific collection in the database
-        const collectionRef = ref(database, "testing");
-    
-        // Function to fetch data from the database
-        const fetchData = () => {
-          // Listen for changes in the collection
-          onValue(collectionRef, (snapshot) => {
-            const dataItem = snapshot.val();
-    
-            // Check if dataItem exists
-            if (dataItem) {
-              // Convert the object values into an array
-              const displayItem = Object.values(dataItem);
-              setData(displayItem);
+        const fetchData = async () => {
+            try {
+                const docRef = doc(db, 'Jitsiuserdata', roomName);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const noiseCancellationValue = data.noiseCancellation;
+                    const VideoQuality = data.VideoQuality;
+                    const isAudioMuted = data.isAudioMuted;
+                    const isVideoMuted = data.isVideoMuted;
+                    console.log('Video Muted Value From the Database -->' , isVideoMuted)
+                    dispatch(setNoiseSuppressionEnabledState(noiseCancellationValue));
+                    dispatch(setPreferredVideoQuality(VideoQuality));
+                    dispatch(setAudioMuted(isAudioMuted));
+                    dispatch(setVideoMuted(isVideoMuted));
+                    setNoiseCancellation(noiseCancellationValue);
+                    console.log('Noise Cancellation Value : ',noiseCancellationValue)
+                } else {
+                    console.log('No such document!');
+                }
+            } catch (error) {
+                console.error('Error fetching document: ', error);
             }
-          });
         };
-    
-        // Fetch data when the component mounts
+
+       
+
         fetchData();
-      }, []);
+    }, []);
+
+   
     useEffect(() => {
         navigator.mediaDevices.enumerateDevices().then(deviceInfos => {
             const VideoInputDevices = deviceInfos.filter(device => device.kind === 'videoinput');
@@ -547,12 +631,9 @@ const Prejoin = ({
                 styles = { {} } />
                 </div>
                 </>
-                {/* <div>
-      <h1>Data from database:</h1>
-      <ul>
-        {data}
-      </ul>
-    </div> */}
+                <div>
+    
+    </div> 
                 
                 
                     <div className={classes.inputcontainer2}>
@@ -613,6 +694,8 @@ const Prejoin = ({
                 </select>
             </div>
         </div>
+
+        
                     <div className={classes.Audiotextcontainer}>
                    
                      <p style={{color:'#52596A' , fontSize:'1rem'}}>  Audio or video not working? Allow microphone and camera permissions in your <span style={{color:'#FFAF2E'}}>Support Page</span></p>
@@ -673,6 +756,11 @@ function mapStateToProps(state: IReduxState) {
     const { joiningInProgress } = state['features/prejoin'];
     const { room } = state['features/base/conference'];
     const { unsafeRoomConsent } = state['features/base/premeeting'];
+    const { connection } = state['features/base/connection'];
+    const getrrominfo = getRoomsInfo(state);
+    const { gumPending } = state['features/base/media'].audio;
+    const _audioMuted = isLocalTrackMuted(state['features/base/tracks'], MEDIA_TYPE.AUDIO);
+    const _videomuted = isLocalTrackMuted(state['features/base/tracks'], MEDIA_TYPE.VIDEO);
 
     return {
         deviceStatusVisible: isDeviceStatusVisible(state),
@@ -688,7 +776,12 @@ function mapStateToProps(state: IReduxState) {
         showErrorOnJoin,
         showUnsafeRoomWarning: isInsecureRoomName(room) && isUnsafeRoomWarningEnabled(state),
         unsafeRoomConsent,
-        videoTrack: getLocalJitsiVideoTrack(state)
+        videoTrack: getLocalJitsiVideoTrack(state),
+        _connectionstring : connection,
+        _getroominfo : getrrominfo,
+        _gumPending : gumPending,
+        _audioMuted:_audioMuted,
+        _videomuted:_videomuted
     };
 }
 
