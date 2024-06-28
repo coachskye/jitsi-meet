@@ -1,9 +1,10 @@
+// @ts-ignore
 import _ from 'lodash';
 import React, { useEffect } from 'react';
 import { WithTranslation } from 'react-i18next';
 import { connect as reactReduxConnect, useSelector } from 'react-redux';
 
-// @ts-expect-error
+// @ts-ignore
 import VideoLayout from '../../../../../modules/UI/videolayout/VideoLayout';
 import { IReduxState, IStore } from '../../../app/types';
 import { getConferenceNameForTitle } from '../../../base/conference/functions';
@@ -41,9 +42,9 @@ import ConferenceInfo from './ConferenceInfo';
 import { default as Notice } from './Notice';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { isNoiseSuppressionEnabled } from '../../../noise-suppression/functions';
-import { db } from '../../../../firebaseconfig';
+import  { db }  from '../../../../firebaseconfig';
 import { setNoiseSuppressionEnabledState } from '../../../noise-suppression/actions';
-import { IJitsiConference } from '../../../base/conference/reducer';
+
 import { MEDIA_TYPE } from '../../../base/media/constants';
 import { isLocalTrackMuted } from '../../../base/tracks/functions.any';
 
@@ -112,7 +113,7 @@ interface IProps extends AbstractProps, WithTranslation {
 
     _qualityVideo: number;
 
-    conference : IJitsiConference;
+    // conference : IJitsiConference;
 
     _audioMuted : boolean;
 
@@ -224,7 +225,7 @@ class Conference extends AbstractConference<IProps, any> {
             _showPrejoin,
             _noiseSuppressionEnabled,
             _qualityVideo,
-            conference,
+            // conference,
             _audioMuted,
             _videomuted,
             t
@@ -237,7 +238,7 @@ class Conference extends AbstractConference<IProps, any> {
         // Extract the path name (which includes '/LogicalNotebooksEncounterTenderly')
         const pathName = url.pathname;
         
-        console.log('is Audio Muted inside the Conference -->' , conference?.isStartAudioMuted());
+        // console.log('is Audio Muted inside the Conference -->' , conference?.isStartAudioMuted());
         // Split the path name by '/' and get the last segment
         const segments = pathName.split('/').filter(segment => segment);
         const roomName = segments[segments.length - 1];
@@ -361,9 +362,9 @@ class Conference extends AbstractConference<IProps, any> {
                         : this.renderNotificationsContainer())
                     }
 
-                    <CalleeInfoContainer />
+                    <CalleeInfoContainer  />
 
-                    { _showPrejoin && <Prejoin />}
+                    { _showPrejoin && <Prejoin/>}
                     { _showLobby && <LobbyScreen />}
                 </div>
                 <ParticipantsPane />

@@ -1,5 +1,5 @@
 /* global APP  */
-
+// @ts-ignore
 import Logger from '@jitsi/logger';
 
 import { MEDIA_TYPE, VIDEO_TYPE } from '../../../react/features/base/media/constants';

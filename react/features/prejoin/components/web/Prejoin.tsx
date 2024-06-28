@@ -1,9 +1,11 @@
 /* eslint-disable react/jsx-no-bind */
+// @ts-ignore
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { connect, useDispatch, useSelector } from 'react-redux';
 import { makeStyles } from 'tss-react/mui';
-import cong, { db } from '../../../../firebaseconfig';
+
+import  { db } from '../../../../firebaseconfig';
 import { IReduxState } from '../../../app/types';
 import Avatar from '../../../base/avatar/components/Avatar';
 import { isNameReadOnly } from '../../../base/config/functions.web';
@@ -47,7 +49,7 @@ import { Checkbox } from '@mui/material';
 import { getDatabase, ref, onValue } from "firebase/database";
 import { getFirestore, doc, getDoc, addDoc, collection, setDoc, updateDoc } from 'firebase/firestore';
 import { IRoomsInfo } from '../../../breakout-rooms/types';
-import { IJitsiParticipant } from '../../../base/participants/types';
+
 import { getRoomsInfo } from '../../../breakout-rooms/functions';
 import { setNoiseSuppressionEnabledState } from '../../../noise-suppression/actions';
 import { isNoiseSuppressionEnabled } from '../../../noise-suppression/functions';
@@ -148,17 +150,39 @@ interface IProps {
      * The JitsiLocalTrack to display.
      */
     videoTrack?: Object;
+    /**
+     * The JitsiLocalTrack to display.
+     */
 
     _getroominfo : IRoomsInfo;
+    /**
+     * The JitsiLocalTrack to display.
+     */
     
-    _connectionstring : IJitsiParticipant,
+   
+    /**
+     * The JitsiLocalTrack to display.
+     */
     
-    conference: IJitsiConference,
+    // conference: IJitsiConference,
+    /**
+     * The JitsiLocalTrack to display.
+     */
 
     _gumPending: IGUMPendingState,
+    /**
+     * The JitsiLocalTrack to display.
+     */
 
     _audioMuted : boolean,
-    _videomuted: boolean
+    /**
+     * The JitsiLocalTrack to display.
+     */
+    
+    _videomuted: boolean,
+
+
+
 }
 
 const useStyles = makeStyles()(theme => {
@@ -173,7 +197,7 @@ const useStyles = makeStyles()(theme => {
             height:'9vh',
             textAlign:'center',
             padding:10,
-            fontWeight:'200',
+            fontWeight:200,
             fontSize:'1vw',
             '@media (max-width: 730px)': {
                 height:'5vh',
@@ -310,11 +334,11 @@ const Prejoin = ({
     updateSettings: dispatchUpdateSettings,
     videoTrack,
     _getroominfo,
-    _connectionstring,
-    conference,
+    // conference,
     _gumPending,
     _audioMuted,
-    _videomuted
+    _videomuted,
+   
 }: IProps) => {
     const showDisplayNameField = useMemo(
         () => isDisplayNameVisible && !readOnlyName,
@@ -325,7 +349,7 @@ const Prejoin = ({
     const [ showJoinByPhoneButtons, setShowJoinByPhoneButtons ] = useState(false);
     const [data, setData] = useState([]);
     const [noiseCancellation, setNoiseCancellation] = useState(false);
-    const { classes } = useStyles();
+    const { classes, cx } = useStyles();
     const { t } = useTranslation();
     const dispatch = useDispatch();
 
@@ -335,10 +359,7 @@ const Prejoin = ({
     const [selectedDeviceId2, setSelectedDeviceId2] = useState<string>('');
 
 
-    if(_connectionstring){
-        const jid = _connectionstring?.getJid();
-        console.log('Connection Jid is -->' , jid);
-    }
+   
 
     console.log('Value of Room state -->' , _getroominfo);
 
@@ -756,7 +777,7 @@ function mapStateToProps(state: IReduxState) {
     const { joiningInProgress } = state['features/prejoin'];
     const { room } = state['features/base/conference'];
     const { unsafeRoomConsent } = state['features/base/premeeting'];
-    const { connection } = state['features/base/connection'];
+    
     const getrrominfo = getRoomsInfo(state);
     const { gumPending } = state['features/base/media'].audio;
     const _audioMuted = isLocalTrackMuted(state['features/base/tracks'], MEDIA_TYPE.AUDIO);
@@ -777,7 +798,7 @@ function mapStateToProps(state: IReduxState) {
         showUnsafeRoomWarning: isInsecureRoomName(room) && isUnsafeRoomWarningEnabled(state),
         unsafeRoomConsent,
         videoTrack: getLocalJitsiVideoTrack(state),
-        _connectionstring : connection,
+      
         _getroominfo : getrrominfo,
         _gumPending : gumPending,
         _audioMuted:_audioMuted,
