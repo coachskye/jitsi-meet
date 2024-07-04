@@ -398,20 +398,34 @@ console.log('Room Name is -->',roomName);
 // },[])
 
 
+// useEffect(() => {
+//     const handleMessage = (event: { data: { type: string; token: any; }; }) => {
+//       if (event.data && event.data.type === 'SET_TOKEN') {
+//         const receivedToken = event.data.token;
+//         // Now you can use the receivedToken in your second app
+//         console.log('Received token: is -->', receivedToken);
+//       }
+//     };
+  
+//     window.addEventListener('message', handleMessage);
+  
+//     return () => {
+//       window.removeEventListener('message', handleMessage);
+//     };
+//   }, []);
+
 useEffect(() => {
-    const handleMessage = (event) => {
-      if (event.data && event.data.type === 'SET_TOKEN') {
-        const receivedToken = event.data.token;
-        // Now you can use the receivedToken in your second app
-        console.log('Received token: is -->', receivedToken);
-      }
-    };
+    const urlParams = new URLSearchParams(window.location.search);
+    console.log('url is of the website is ', urlParams);
+    const jwtToken = urlParams.get('jwt');
+
+    if (jwtToken) {
+    
+      console.log('Extracted token from URL:', jwtToken);
+    }
+
   
-    window.addEventListener('message', handleMessage);
-  
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
+
   }, []);
 
 
