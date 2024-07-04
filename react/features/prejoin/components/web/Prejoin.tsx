@@ -398,7 +398,21 @@ console.log('Room Name is -->',roomName);
 // },[])
 
 
-
+useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data && event.data.type === 'SET_TOKEN') {
+        const receivedToken = event.data.token;
+        // Now you can use the receivedToken in your second app
+        console.log('Received token: is -->', receivedToken);
+      }
+    };
+  
+    window.addEventListener('message', handleMessage);
+  
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
 
 
     useEffect(() => {

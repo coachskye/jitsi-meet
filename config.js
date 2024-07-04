@@ -627,7 +627,7 @@ var config = {
     // DEPRECATED! Use 'welcomePage.disabled' instead.
     // Whether to use a welcome page or not. In case it's false a random room
     // will be joined when no room is specified.
-    // enableWelcomePage: true,
+    enableWelcomePage: false,
 
     // Configs for welcome page.
     // welcomePage: {
