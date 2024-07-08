@@ -1,5 +1,5 @@
 /* global __dirname */
-
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 const CircularDependencyPlugin = require('circular-dependency-plugin');
 const fs = require('fs');
 const { join, resolve } = require('path');
@@ -213,6 +213,9 @@ function getConfig(options = {}) {
             ],
             fallback: {
                 // Provide some empty Node modules (required by AtlasKit, olm).
+
+                stream: require.resolve('stream-browserify'),
+                
                 crypto: false,
                 fs: false,
                 path: false,
@@ -290,7 +293,8 @@ module.exports = (_env, argv) => {
                 }),
                 new webpack.ProvidePlugin({
                     process: 'process/browser'
-                })
+                }),
+                new NodePolyfillPlugin()
             ],
 
             performance: getPerformanceHints(perfHintOptions, 5 * 1024 * 1024)

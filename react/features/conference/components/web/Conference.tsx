@@ -1,6 +1,6 @@
 // @ts-ignore
 import _ from 'lodash';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { WithTranslation } from 'react-i18next';
 import { connect as reactReduxConnect, useSelector } from 'react-redux';
 
@@ -32,6 +32,7 @@ import { LAYOUT_CLASSNAMES } from '../../../video-layout/constants';
 import { getCurrentLayout } from '../../../video-layout/functions.any';
 import { init } from '../../actions.web';
 import { maybeShowSuboptimalExperienceNotification } from '../../functions.web';
+import jwt from 'jsonwebtoken';
 import {
     AbstractConference,
     abstractMapStateToProps
@@ -47,6 +48,8 @@ import { setNoiseSuppressionEnabledState } from '../../../noise-suppression/acti
 
 import { MEDIA_TYPE } from '../../../base/media/constants';
 import { isLocalTrackMuted } from '../../../base/tracks/functions.any';
+import { IVirtualBackground } from '../../../virtual-background/reducer';
+import Toolbox2 from '../../../toolbox/components/web/Toolbox2';
 
 /**
  * DOM events for when full screen mode has changed. Different browsers need
@@ -118,11 +121,17 @@ interface IProps extends AbstractProps, WithTranslation {
     _audioMuted : boolean;
 
     _videomuted : boolean;
+
+    _virtualbackground : IVirtualBackground
 }
 
 /**
  * The conference page of the Web application.
  */
+
+interface IState {
+    jwtToken: string | null;
+}
 class Conference extends AbstractConference<IProps, any> {
     _originalOnMouseMove: Function;
     _originalOnShowToolbar: Function;
@@ -135,6 +144,10 @@ class Conference extends AbstractConference<IProps, any> {
      */
     constructor(props: IProps) {
         super(props);
+
+        this.state = {
+            jwtToken: null,
+        };
 
         const { _mouseMoveCallbackInterval } = props;
 
@@ -171,8 +184,25 @@ class Conference extends AbstractConference<IProps, any> {
      * @inheritdoc
      */
     componentDidMount() {
+
+
+        const urlParams = new URLSearchParams(window.location.search);
+        console.log('url is of the website is ', urlParams);
+        const jwtToken = urlParams.get('jwt');
+    
+        if (jwtToken) {
+        
+          console.log('Extracted token from URL:', jwtToken);
+          this.setState({ jwtToken });
+    
+          
+        }
         document.title = `${this.props._roomName} | ${interfaceConfig.APP_NAME}`;
         this._start();
+    
+    
+        
+
     }
 
     /**
@@ -228,6 +258,7 @@ class Conference extends AbstractConference<IProps, any> {
             // conference,
             _audioMuted,
             _videomuted,
+            _virtualbackground,
             t
         } = this.props;
         const currentUrl = window.location.href;
@@ -242,13 +273,62 @@ class Conference extends AbstractConference<IProps, any> {
         // Split the path name by '/' and get the last segment
         const segments = pathName.split('/').filter(segment => segment);
         const roomName = segments[segments.length - 1];
+        const { jwtToken } = this.state;
+
+        console.log('JWT Token:', jwtToken);
+        // const [useridfromtoken , setuseridfrom] = useState('');
+
+
+        console.log('Virtual Background-->' , _virtualbackground)
+        const virtualBackgroundJSON = JSON.stringify(_virtualbackground);
+        interface JwtPayloadWithContext extends jwt.JwtPayload {
+            context?: {
+                user?: {
+                    id?: string;
+                };
+            };
+        }
+
+        const extractNameFromToken = (token: string): string => {
+            try {
+                // Decode the token without verifying the signature
+                const decoded = jwt.decode(token) as JwtPayloadWithContext | null;
+        
+                // Check if the decoded token is an object and has the expected structure
+                if (decoded && typeof decoded === 'object' && decoded.context?.user?.id) {
+                    console.log('New function update-->' , decoded.context.user.id);
+                    return decoded.context.user.id;
+                } else {
+                    return 'Invalid token structure';
+                }
+            } catch (error) {
+                console.error('Failed to decode token:', error);
+                return 'Invalid token';
+            }
+        };
+
+
+         
+
+
+
+
+      
+            const userid = extractNameFromToken(jwtToken);
+        
+ 
+   
+    console.log('Extracted name from token is -->:',userid);
+
+
+
         // const noiseSuppressionEnabled = useSelector(isNoiseSuppressionEnabled);
  console.log('NoiseSupression Value is in Conference -->' , _noiseSuppressionEnabled);
       console.log('Quality Video is in Conference -->' , _qualityVideo);
             const updateDocument = async () => {
                 try {
                     // Check if document with roomName exists
-                    const docRef = doc(db, 'Jitsiuserdata', roomName);
+                    const docRef = doc(db, 'jitsiUserData', userid);
                     const docSnap = await getDoc(docRef);
         
                     if (docSnap.exists()) {
@@ -258,11 +338,19 @@ class Conference extends AbstractConference<IProps, any> {
                             VideoQuality : _qualityVideo,
                             isAudioMuted : _audioMuted,
                             isVideoMuted : _videomuted,
+                            BackgroundSettings: {
+                                backgroundEffectEnabled: _virtualbackground.backgroundEffectEnabled || false,
+                                virtualSource: _virtualbackground.virtualSource|| '',
+                                backgroundType : _virtualbackground.backgroundType || '',
+                                blurValue : _virtualbackground.blurValue || 0,
+                                selectedThumbnail : _virtualbackground.selectedThumbnail || '',
+
+                            },
                             updatedAt: new Date()  // Example: Adding updatedAt field
                         });
-                        console.log('Document updated:', roomName);
+                        console.log('Document updated:', userid);
                     } else {
-                        console.log('Document does not exist:', roomName);
+                        console.log('Document does not exist:', userid);
                         // Optionally handle case where document does not exist
                         // For example, show an error message to the user
                     }
@@ -278,11 +366,11 @@ class Conference extends AbstractConference<IProps, any> {
             const addDocument = async () => {
                 try {
                     // Check if document with roomName already exists
-                    const docRef = doc(db, 'Jitsiuserdata', roomName);
+                    const docRef = doc(db, 'jitsiUserData', userid);
                     const docSnap = await getDoc(docRef);
         
                     if (docSnap.exists()) {
-                        console.log('Document already exists:', roomName);
+                        console.log('Document already exists:', userid);
                         // Optionally handle case where document already exists
                         return;
                     }
@@ -294,17 +382,24 @@ class Conference extends AbstractConference<IProps, any> {
                         VideoQuality : _qualityVideo,
                         isAudioMuted : _audioMuted,
                         isVideoMuted : _videomuted,
+                        BackgroundSettings: {
+                            backgroundEffectEnabled: _virtualbackground.backgroundEffectEnabled || false,
+                            virtualSource: _virtualbackground.virtualSource|| '',
+                            backgroundType : _virtualbackground.backgroundType || '',
+                            blurValue : _virtualbackground.blurValue || 0,
+                            selectedThumbnail : _virtualbackground.selectedThumbnail || '',
+
+                        },
                         createdAt: new Date()
                     });
-                    console.log('Document written with ID:', roomName);
+                    console.log('Document written with ID:', userid);
                 } catch (error) {
                     console.error('Error adding document:', error);
                 }
             };
     
     
-           
-            if(roomName){
+            if(userid){
                 addDocument();
             }
 
@@ -350,7 +445,7 @@ class Conference extends AbstractConference<IProps, any> {
                                 role = 'heading'>
                                 { t('toolbar.accessibilityLabel.heading') }
                             </span>
-                            <Toolbox />
+                            <Toolbox/>
                            
                         </>
                     )}
@@ -505,6 +600,7 @@ class Conference extends AbstractConference<IProps, any> {
  */
 function _mapStateToProps(state: IReduxState) {
     const { backgroundAlpha, mouseMoveCallbackInterval } = state['features/base/config'];
+    const virtualBackground = state['features/virtual-background'];
     const { overflowDrawer } = state['features/toolbox'];
     const noiseSuppressionEnabled = isNoiseSuppressionEnabled(state);
     const { preferredVideoQuality } = state['features/video-quality'];
@@ -524,7 +620,8 @@ function _mapStateToProps(state: IReduxState) {
         _noiseSuppressionEnabled: noiseSuppressionEnabled,
         _qualityVideo: preferredVideoQuality,
         _audioMuted:_audioMuted,
-        _videomuted:_videomuted
+        _videomuted:_videomuted,
+        _virtualbackground : virtualBackground
     };
 }
 

@@ -18,7 +18,7 @@ import PreMeetingScreen from '../../../base/premeeting/components/web/PreMeeting
 import { updateSettings } from '../../../base/settings/actions';
 import { getDisplayName } from '../../../base/settings/functions.web';
 import { withPixelLineHeight } from '../../../base/styles/functions.web';
-import { getLocalJitsiVideoTrack, isLocalTrackMuted } from '../../../base/tracks/functions.web';
+import { getLocalJitsiVideoTrack, getLocalVideoTrack, isLocalTrackMuted } from '../../../base/tracks/functions.web';
 import Button from '../../../base/ui/components/web/Button';
 import Input from '../../../base/ui/components/web/Input';
 import { BUTTON_TYPES } from '../../../base/ui/constants.any';
@@ -58,7 +58,11 @@ import { IJitsiConference } from '../../../base/conference/reducer';
 import { setAudioMuted, setVideoMuted } from '../../../base/media/actions';
 import { IGUMPendingState } from '../../../base/media/types';
 import { MEDIA_TYPE } from '../../../base/media/constants';
-
+import jwt from 'jsonwebtoken';
+import { backgroundEnabled, setVirtualBackground, toggleBackgroundEffect } from '../../../virtual-background/actions';
+import Toolbox from '../../../toolbox/components/web/Toolbox';
+import Toolbox2 from '../../../toolbox/components/web/Toolbox2';
+import { createVirtualBackgroundEffect } from '../../../stream-effects/virtual-background';
 interface IProps {
 
     /**
@@ -180,6 +184,8 @@ interface IProps {
      */
     
     _videomuted: boolean,
+
+    _localtrack: any
 
 
 
@@ -338,6 +344,7 @@ const Prejoin = ({
     _gumPending,
     _audioMuted,
     _videomuted,
+    _localtrack
    
 }: IProps) => {
     const showDisplayNameField = useMemo(
@@ -357,9 +364,9 @@ const Prejoin = ({
     const [devices2, setDevices2] = useState<MediaDeviceInfo[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
     const [selectedDeviceId2, setSelectedDeviceId2] = useState<string>('');
+   const [tokenfromurl , settokenfromurl] = useState('');
 
-
-   
+   const [userextracted , setuserextracted] = useState('');
 
     console.log('Value of Room state -->' , _getroominfo);
 
@@ -368,20 +375,69 @@ const Prejoin = ({
      console.log(' Video Muted status 35454 -->' , _videomuted);
     const currentUrl = window.location.href;
 
-        // Create a URL object
-        const url = new URL(currentUrl);
+        // // Create a URL object
+        // const url = new URL(currentUrl);
         
-        // Extract the path name (which includes '/LogicalNotebooksEncounterTenderly')
-        const pathName = url.pathname;
+        // // Extract the path name (which includes '/LogicalNotebooksEncounterTenderly')
+        // const pathName = url.pathname;
         
-        // Split the path name by '/' and get the last segment
-        const segments = pathName.split('/').filter(segment => segment);
-        const roomName = segments[segments.length - 1];
+        // // Split the path name by '/' and get the last segment
+        // const segments = pathName.split('/').filter(segment => segment);
+        // const roomName = segments[segments.length - 1];
+        
         const noiseSuppressionEnabled = useSelector(isNoiseSuppressionEnabled);
+
+        interface JwtPayloadWithContext extends jwt.JwtPayload {
+            context?: {
+                user?: {
+                    id?: string;
+                };
+            };
+        }
+
+        const extractNameFromToken = (token: string): string => {
+            try {
+                // Decode the token without verifying the signature
+                const decoded = jwt.decode(token) as JwtPayloadWithContext | null;
+        
+                // Check if the decoded token is an object and has the expected structure
+                if (decoded && typeof decoded === 'object' && decoded.context?.user?.id) {
+                    console.log('New function update in prejoin-->' , decoded.context.user.id);
+                    return decoded.context.user.id;
+                } else {
+                    return 'Invalid token structure';
+                }
+            } catch (error) {
+                console.error('Failed to decode token:', error);
+                return 'Invalid token';
+            }
+        };
 
 
 console.log('Noise Cancellation Value is -->' , noiseSuppressionEnabled)
-console.log('Room Name is -->',roomName);
+        useEffect(()=>{
+
+            const urlParams = new URLSearchParams(window.location.search);
+console.log('url is of the website is ', urlParams);
+const jwtToken = urlParams.get('jwt');
+
+if (jwtToken) {
+
+  console.log('Extracted token from URL:', jwtToken);
+  settokenfromurl(jwtToken);
+
+  
+}
+
+        },[])
+
+        useEffect(()=>{
+            if(tokenfromurl){
+                const userid = extractNameFromToken(tokenfromurl)
+                setuserextracted(userid);
+            }
+      
+        },[tokenfromurl])
 
 // const audioMuted = Boolean(conference.isStartAudioMuted());
 // const videoMuted = Boolean(conference.isStartVideoMuted());
@@ -414,19 +470,6 @@ console.log('Room Name is -->',roomName);
 //     };
 //   }, []);
 
-useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    console.log('url is of the website is ', urlParams);
-    const jwtToken = urlParams.get('jwt');
-
-    if (jwtToken) {
-    
-      console.log('Extracted token from URL:', jwtToken);
-    }
-
-  
-
-  }, []);
 
 
     useEffect(() => {
@@ -441,37 +484,50 @@ useEffect(() => {
 
    // Assuming NoiseCancellation is a boolean
   console.log('Participant id is -->', participantId)
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const docRef = doc(db, 'Jitsiuserdata', roomName);
-                const docSnap = await getDoc(docRef);
+  useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const docRef = doc(db, 'jitsiUserData', userextracted);
+            const docSnap = await getDoc(docRef);
 
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    const noiseCancellationValue = data.noiseCancellation;
-                    const VideoQuality = data.VideoQuality;
-                    const isAudioMuted = data.isAudioMuted;
-                    const isVideoMuted = data.isVideoMuted;
-                    console.log('Video Muted Value From the Database -->' , isVideoMuted)
-                    dispatch(setNoiseSuppressionEnabledState(noiseCancellationValue));
-                    dispatch(setPreferredVideoQuality(VideoQuality));
-                    dispatch(setAudioMuted(isAudioMuted));
-                    dispatch(setVideoMuted(isVideoMuted));
-                    setNoiseCancellation(noiseCancellationValue);
-                    console.log('Noise Cancellation Value : ',noiseCancellationValue)
-                } else {
-                    console.log('No such document!');
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const noiseCancellationValue = data.noiseCancellation;
+                const videoQuality = data.VideoQuality;
+                const isAudioMuted = data.isAudioMuted;
+                const isVideoMuted = data.isVideoMuted;
+                const virtualBackgroundData = data.BackgroundSettings;
+                const backgroundEffectEnabled = data.BackgroundSettings.backgroundEffectEnabled;
+
+                console.log('Value of Background Virtual Data-->', virtualBackgroundData);
+                console.log('Value of BackgroundEffect 1234-->', backgroundEffectEnabled);
+                console.log('Video Muted Value From the Database -->', isVideoMuted);
+
+                // Dispatch actions
+                dispatch(backgroundEnabled(backgroundEffectEnabled));
+                dispatch(setVirtualBackground(virtualBackgroundData));
+                dispatch(setNoiseSuppressionEnabledState(noiseCancellationValue));
+                dispatch(setPreferredVideoQuality(videoQuality));
+                dispatch(setAudioMuted(isAudioMuted));
+                dispatch(setVideoMuted(isVideoMuted));
+                setNoiseCancellation(noiseCancellationValue);
+
+                // Apply background effect
+                if (_localtrack) {
+                    await dispatch(toggleBackgroundEffect(virtualBackgroundData, _localtrack));
                 }
-            } catch (error) {
-                console.error('Error fetching document: ', error);
+
+                console.log('Noise Cancellation Value:', noiseCancellationValue);
+            } else {
+                console.log('No such document!');
             }
-        };
+        } catch (error) {
+            console.error('Error fetching document:', error);
+        }
+    };
 
-       
-
-        fetchData();
-    }, []);
+    fetchData();
+}, [userextracted, _localtrack, dispatch]);
 
    
     useEffect(() => {
@@ -674,10 +730,11 @@ useEffect(() => {
                 videoTrack = { videoTrack } />
                
                 <div className={classes.buttoncontainer}>
-                <AudioMuteButton
+                {/* <AudioMuteButton
                 styles = {{}} />
             <VideoMuteButton
-                styles = { {} } />
+                styles = { {} } /> */}
+                <Toolbox2 />
                 </div>
                 </>
                 <div>
@@ -810,6 +867,7 @@ function mapStateToProps(state: IReduxState) {
     const { gumPending } = state['features/base/media'].audio;
     const _audioMuted = isLocalTrackMuted(state['features/base/tracks'], MEDIA_TYPE.AUDIO);
     const _videomuted = isLocalTrackMuted(state['features/base/tracks'], MEDIA_TYPE.VIDEO);
+    const track = getLocalVideoTrack(state['features/base/tracks'])?.jitsiTrack;
 
     return {
         deviceStatusVisible: isDeviceStatusVisible(state),
@@ -830,7 +888,8 @@ function mapStateToProps(state: IReduxState) {
         _getroominfo : getrrominfo,
         _gumPending : gumPending,
         _audioMuted:_audioMuted,
-        _videomuted:_videomuted
+        _videomuted:_videomuted,
+        _localtrack : track
     };
 }
 
