@@ -285,6 +285,7 @@ class Conference extends AbstractConference<IProps, any> {
             context?: {
                 user?: {
                     id?: string;
+                    isCoach?:string;
                 };
             };
         }
@@ -307,6 +308,24 @@ class Conference extends AbstractConference<IProps, any> {
             }
         };
 
+        const extractCoachFromToken = (token: string): string => {
+            try {
+                // Decode the token without verifying the signature
+                const decoded = jwt.decode(token) as JwtPayloadWithContext | null;
+        
+                // Check if the decoded token is an object and has the expected structure
+                if (decoded && typeof decoded === 'object' && decoded.context?.user?.isCoach) {
+                    console.log('New function update isCoach -->' , decoded.context.user.isCoach);
+                    return decoded.context.user.isCoach;
+                } else {
+                    return 'Invalid token structure';
+                }
+            } catch (error) {
+                console.error('Failed to decode token:', error);
+                return 'Invalid token';
+            }
+        };
+
 
          
 
@@ -315,8 +334,11 @@ class Conference extends AbstractConference<IProps, any> {
 
       
             const userid = extractNameFromToken(jwtToken);
+
+            const isCoach = extractCoachFromToken(jwtToken);
+           
         
- 
+            console.log('Extracted coach Value from -->:',isCoach);
    
     console.log('Extracted name from token is -->:',userid);
 
@@ -399,7 +421,7 @@ class Conference extends AbstractConference<IProps, any> {
             };
     
     
-            if(userid){
+            if(userid !== 'Invalid token structure' && userid !=='Invalid token'){
                 addDocument();
             }
 
@@ -445,7 +467,7 @@ class Conference extends AbstractConference<IProps, any> {
                                 role = 'heading'>
                                 { t('toolbar.accessibilityLabel.heading') }
                             </span>
-                            <Toolbox/>
+                            <Toolbox isCoach={isCoach}/>
                            
                         </>
                     )}

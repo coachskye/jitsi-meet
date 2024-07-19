@@ -149,6 +149,8 @@ interface IProps extends WithTranslation {
      * Explicitly passed array with the buttons which this Toolbox should display.
      */
     toolbarButtons: Array<string>;
+
+    isCoach: string;
 }
 
 const useStyles = makeStyles()(() => {
@@ -207,7 +209,8 @@ const Toolbox = ({
     _visible,
     dispatch,
     t,
-    toolbarButtons
+    toolbarButtons,
+    isCoach
 }: IProps) => {
     const { classes, cx } = useStyles();
     const _toolboxRef = useRef<HTMLDivElement>(null);
@@ -310,6 +313,15 @@ function getVisibleButtons() {
         || THRESHOLDS[THRESHOLDS.length - 1];
 
     const keys = Object.keys(buttons);
+
+    console.log('is Coach Value Coming from the Token is ',isCoach);
+    
+
+
+    if (isCoach === "false") {
+        delete buttons['recording'];
+       
+    }
 
     const filtered = [
         ...order.map(key => buttons[key as keyof typeof buttons]),
