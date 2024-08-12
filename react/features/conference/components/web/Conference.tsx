@@ -143,7 +143,7 @@ interface IProps extends AbstractProps, WithTranslation {
 
 interface IState {
     jwtToken: string | null;
-    paragraphs:[{}];
+    paragraphs: { id: string; text: string }[]
 }
 class Conference extends AbstractConference<IProps, any> {
     _originalOnMouseMove: Function;
@@ -160,10 +160,9 @@ class Conference extends AbstractConference<IProps, any> {
 
         this.state = {
             jwtToken: null,
+            paragraphs: [],
         };
-        this.state ={
-            paragraphs:[]
-        }
+       
 
         const { _mouseMoveCallbackInterval } = props;
 
@@ -221,16 +220,25 @@ class Conference extends AbstractConference<IProps, any> {
 
     }
 
+   
+
     /**
      * Calls into legacy UI to update the application layout, if necessary.
      *
      * @inheritdoc
      * returns {void}
+     * 
+     * 
      */
     componentDidUpdate(prevProps: IProps) {
         if (this.props._shouldDisplayTileView
             === prevProps._shouldDisplayTileView) {
             return;
+        }
+        if (prevProps._transcripts !== this.props._transcripts) {
+            const updatedParagraphs = Array.from(this.props._transcripts?.entries() ?? []).map(([id, text]) => ({ id, text }));
+            console.log('Updated store is paragraph  -->' , updatedParagraphs);
+            this.setState({ paragraphs: updatedParagraphs });
         }
 
         // TODO: For now VideoLayout is being called as LargeVideo and Filmstrip
@@ -253,6 +261,28 @@ class Conference extends AbstractConference<IProps, any> {
             document.removeEventListener(name, this._onFullScreenChange));
 
         APP.conference.isJoined() && this.props.dispatch(hangup());
+
+
+        const saveTranscriptsToFirestore = async () => {
+            const { paragraphs } = this.state;
+            const { _roomName } = this.props;
+    
+            try {
+                // Format the document name
+                const timestamp = new Date().toISOString();
+                const docName = `${_roomName}_${timestamp}`;
+    
+                // Save data to Firestore
+                const docRef = doc(db, 'jitsimeetingTranscriptions', docName);
+                await setDoc(docRef, { transcripts: paragraphs });
+    
+                console.log('Transcripts saved to Firestore:', docName);
+            } catch (error) {
+                console.error('Error saving transcripts to Firestore:', error);
+            }
+        };
+    
+        saveTranscriptsToFirestore();
     }
 
     /**
@@ -291,11 +321,9 @@ class Conference extends AbstractConference<IProps, any> {
         const roomName = segments[segments.length - 1];
         const { jwtToken } = this.state;
 
-        const { _requestingSubtitles, _transcripts } = this.props;
-console.log('dsfndsfosdofmsdodfsd')
-        for (const [ id, text ] of _transcripts ?? []) {
-            console.log('in Conference the transcription is -->' , id , text);
-        }
+        const { _requestingSubtitles, _transcripts} = this.props;
+        const { paragraphs } = this.state;
+        
 
         console.log('JWT Token:', jwtToken);
         // const [useridfromtoken , setuseridfrom] = useState('');
