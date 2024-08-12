@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useState, useCallback } from 'react';
 import { connect } from 'react-redux';
 import { IReduxState } from '../../../app/types';
 import { getLocalParticipant } from '../../../base/participants/functions';
@@ -18,29 +18,21 @@ interface IProps extends IAbstractCaptionsProps {
     meeting_name: string;
 }
 
-interface IState {
-    captions: Array<{ id: string, text: string }>;
-}
+const Captions = (props: IProps) => {
+    const [captions, setCaptions] = useState<Array<{ id: string, text: string }>>([]);
 
-class Captions extends AbstractCaptions<IProps, IState> {
-    state: IState = {
-        captions: [{id:'1' , text:'12323'}]
-    };
-
-    _renderParagraph(id: string, text: string): ReactElement {
-        // this.setState(prevState => ({
-        //     captions: [...prevState.captions, { id, text }]
-        // }));
+    const renderParagraph = useCallback((id: string, text: string): ReactElement => {
+        setCaptions(prevCaptions => [...prevCaptions, { id, text }]);
         console.log('Render Paragraph-->', text);
         return (
             <p key={id}>
                 <span>{text}</span>
             </p>
         );
-    }
+    }, []);
 
-    _renderSubtitlesContainer(paragraphs: Array<ReactElement>): ReactElement {
-        const className = this.props._isLifted
+    const renderSubtitlesContainer = (paragraphs: Array<ReactElement>): ReactElement => {
+        const className = props._isLifted
             ? 'transcription-subtitles lifted'
             : 'transcription-subtitles';
         console.log('Paragraph Values is -->', paragraphs);
@@ -49,18 +41,18 @@ class Captions extends AbstractCaptions<IProps, IState> {
                 {paragraphs}
             </div>
         );
-    }
+    };
 
-    componentWillUnmount() {
-        console.log('Meeting Ending, component will unmount with meeting_name:', this.props.meeting_name);
-        this.saveCaptionsToFirestore();
-    }
+    React.useEffect(() => {
+        return () => {
+            console.log('Meeting Ending, component will unmount with meeting_name:', props.meeting_name);
+            saveCaptionsToFirestore();
+        };
+    }, [props.meeting_name]);
 
-    async saveCaptionsToFirestore() {
-        const { captions } = this.state;
-        const meetingName = this.props.meeting_name;
+    const saveCaptionsToFirestore = async () => {
         const currentTime = new Date().toISOString();
-        const docName = `${meetingName}_${currentTime}`;
+        const docName = `${props.meeting_name}_${currentTime}`;
         
         try {
             const docRef = doc(db, 'jitsitranscriptionmeetings', docName);
@@ -69,8 +61,15 @@ class Captions extends AbstractCaptions<IProps, IState> {
         } catch (error) {
             console.error('Error saving captions to Firestore:', error);
         }
-    }
-}
+    };
+
+    return (
+        <div>
+            {/* Render captions */}
+            {renderSubtitlesContainer(captions.map(caption => renderParagraph(caption.id, caption.text)))}
+        </div>
+    );
+};
 
 function mapStateToProps(state: IReduxState) {
     const isTileView = isLayoutTileView(state);
