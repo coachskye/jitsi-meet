@@ -1,6 +1,5 @@
 import React, { ReactElement } from 'react';
 import { connect } from 'react-redux';
-
 import { IReduxState } from '../../../app/types';
 import { getLocalParticipant } from '../../../base/participants/functions';
 import { getLargeVideoParticipant } from '../../../large-video/functions';
@@ -10,70 +9,70 @@ import {
     type IAbstractCaptionsProps,
     _abstractMapStateToProps
 } from '../AbstractCaptions';
-
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../../../../firebaseconfig';
 
 interface IProps extends IAbstractCaptionsProps {
-
-    /**
-     * Whether the subtitles container is lifted above the invite box.
-     */
     _isLifted: boolean | undefined;
 }
 
-/**
- * React {@code Component} which can display speech-to-text results from
- * Jigasi as subtitles.
- */
-class Captions extends AbstractCaptions<IProps> {
+interface IState {
+    captions: Array<{ id: string, text: string }>;
+}
 
-    /**
-     * Renders the transcription text.
-     *
-     * @param {string} id - The ID of the transcript message from which the
-     * {@code text} has been created.
-     * @param {string} text - Subtitles text formatted with the participant's
-     * name.
-     * @protected
-     * @returns {ReactElement} - The React element which displays the text.
-     */
+class Captions extends AbstractCaptions<IProps, IState> {
+
+    state: IState = {
+        captions: []
+    };
+
     _renderParagraph(id: string, text: string): ReactElement {
-        console.log('Render Paragraph-->' , text);
+        this.setState(prevState => ({
+            captions: [...prevState.captions, { id, text }]
+        }));
+        console.log('Captions Value is -->' , this.state.captions);
+        console.log('Render Paragraph-->', text);
         return (
-            <p key = { id }>
-                <span>{ text }</span>
+            <p key={id}>
+                <span>{text}</span>
             </p>
         );
     }
 
-    /**
-     * Renders the subtitles container.
-     *
-     * @param {Array<ReactElement>} paragraphs - An array of elements created
-     * for each subtitle using the {@link _renderParagraph} method.
-     * @protected
-     * @returns {ReactElement} - The subtitles container.
-     */
     _renderSubtitlesContainer(paragraphs: Array<ReactElement>): ReactElement {
         const className = this.props._isLifted
             ? 'transcription-subtitles lifted'
             : 'transcription-subtitles';
-      console.log('Paragraph Values is -->' , paragraphs);
+        console.log('Paragraph Values is -->', paragraphs);
         return (
-            <div className = { className } >
-                { paragraphs }
+            <div className={className}>
+                {paragraphs}
             </div>
         );
     }
+
+    componentWillUnmount() {
+        // Save captions to Firestore when the component unmounts (meeting ends)
+        console.log('Meeting Ending, component will unmount');
+        this.saveCaptionsToFirestore();
+    }
+
+    async saveCaptionsToFirestore() {
+        const { captions } = this.state;
+        const meetingName = 'meeting_name'; // Replace with actual meeting name or logic to fetch it
+        const currentTime = new Date().toISOString();
+        const docName = `${meetingName}_${currentTime}`;
+        
+        try {
+            const docRef = doc(db, 'jitsitranscriptionmeetings', docName);
+            await setDoc(docRef, { captions });
+            console.log('Captions saved to Firestore successfully!');
+        } catch (error) {
+            console.error('Error saving captions to Firestore:', error);
+        }
+    }
 }
 
-/**
- * Maps (parts of) the redux state to the associated {@code }'s
- * props.
- *
- * @param {Object} state - The redux state.
- * @private
- * @returns {Object}
- */
 function mapStateToProps(state: IReduxState) {
     const isTileView = isLayoutTileView(state);
     const largeVideoParticipant = getLargeVideoParticipant(state);
