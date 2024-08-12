@@ -122,7 +122,19 @@ interface IProps extends AbstractProps, WithTranslation {
 
     _videomuted : boolean;
 
-    _virtualbackground : IVirtualBackground
+    _virtualbackground : IVirtualBackground,
+    
+    /**
+     * Whether local participant is requesting to see subtitles.
+     */
+    _requestingSubtitles: boolean;
+
+    /**
+     * Transcript texts formatted with participant's name and final content.
+     * Mapped by id just to have the keys for convenience during the rendering
+     * process.
+     */
+    _transcripts?: Map<string, string>;
 }
 
 /**
@@ -131,6 +143,7 @@ interface IProps extends AbstractProps, WithTranslation {
 
 interface IState {
     jwtToken: string | null;
+    paragraphs:[{}];
 }
 class Conference extends AbstractConference<IProps, any> {
     _originalOnMouseMove: Function;
@@ -148,6 +161,9 @@ class Conference extends AbstractConference<IProps, any> {
         this.state = {
             jwtToken: null,
         };
+        this.state ={
+            paragraphs:[]
+        }
 
         const { _mouseMoveCallbackInterval } = props;
 
@@ -274,6 +290,12 @@ class Conference extends AbstractConference<IProps, any> {
         const segments = pathName.split('/').filter(segment => segment);
         const roomName = segments[segments.length - 1];
         const { jwtToken } = this.state;
+
+        const { _requestingSubtitles, _transcripts } = this.props;
+console.log('dsfndsfosdofmsdodfsd')
+        for (const [ id, text ] of _transcripts ?? []) {
+            console.log('in Conference the transcription is -->' , id , text);
+        }
 
         console.log('JWT Token:', jwtToken);
         // const [useridfromtoken , setuseridfrom] = useState('');
@@ -610,7 +632,29 @@ class Conference extends AbstractConference<IProps, any> {
 
       
 
+function _constructTranscripts(state: IReduxState): Map<string, string> {
+    const { _transcriptMessages } = state['features/subtitles'];
+    const transcripts = new Map();
 
+    for (const [ id, transcriptMessage ] of _transcriptMessages) {
+        if (transcriptMessage) {
+            let text = `${transcriptMessage.participantName}: `;
+
+            if (transcriptMessage.final) {
+                text += transcriptMessage.final;
+            } else {
+                const stable = transcriptMessage.stable || '';
+                const unstable = transcriptMessage.unstable || '';
+
+                text += stable + unstable;
+            }
+
+            transcripts.set(id, text);
+        }
+    }
+
+    return transcripts;
+}
 
 /**
  * Maps (parts of) the Redux state to the associated props for the
@@ -628,7 +672,8 @@ function _mapStateToProps(state: IReduxState) {
     const { preferredVideoQuality } = state['features/video-quality'];
     const _audioMuted = isLocalTrackMuted(state['features/base/tracks'], MEDIA_TYPE.AUDIO);
     const _videomuted = isLocalTrackMuted(state['features/base/tracks'], MEDIA_TYPE.VIDEO);
-
+    const { _requestingSubtitles } = state['features/subtitles'];
+    const transcripts = _constructTranscripts(state);
     return {
         ...abstractMapStateToProps(state),
         _backgroundAlpha: backgroundAlpha,
@@ -643,7 +688,11 @@ function _mapStateToProps(state: IReduxState) {
         _qualityVideo: preferredVideoQuality,
         _audioMuted:_audioMuted,
         _videomuted:_videomuted,
-        _virtualbackground : virtualBackground
+        _virtualbackground : virtualBackground,
+        _requestingSubtitles,
+
+        // avoid re-renders by setting to prop new empty Map instances.
+        _transcripts: transcripts.size === 0 ? undefined : transcripts
     };
 }
 

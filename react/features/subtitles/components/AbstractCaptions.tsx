@@ -25,7 +25,7 @@ export interface IAbstractCaptionsProps {
  * Abstract React {@code Component} which can display speech-to-text results
  * from Jigasi as subtitles.
  */
-export class AbstractCaptions<P extends IAbstractCaptionsProps, S> extends Component<P, S>{
+export class AbstractCaptions<P extends IAbstractCaptionsProps> extends Component<P> {
 
     /**
      * Implements React's {@link Component#render()}.
