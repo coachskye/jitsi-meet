@@ -11,9 +11,11 @@ import {
 } from '../AbstractCaptions';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../../../firebaseconfig';
+import { getConferenceName } from '../../../base/conference/functions';
 
 interface IProps extends IAbstractCaptionsProps {
     _isLifted: boolean | undefined;
+    meeting_name: string;
 }
 
 interface IState {
@@ -21,7 +23,6 @@ interface IState {
 }
 
 class Captions extends AbstractCaptions<IProps, IState> {
-
     state: IState = {
         captions: []
     };
@@ -30,7 +31,6 @@ class Captions extends AbstractCaptions<IProps, IState> {
         this.setState(prevState => ({
             captions: [...prevState.captions, { id, text }]
         }));
-        console.log('Captions Value is -->' , this.state.captions);
         console.log('Render Paragraph-->', text);
         return (
             <p key={id}>
@@ -52,14 +52,13 @@ class Captions extends AbstractCaptions<IProps, IState> {
     }
 
     componentWillUnmount() {
-        // Save captions to Firestore when the component unmounts (meeting ends)
-        console.log('Meeting Ending, component will unmount');
+        console.log('Meeting Ending, component will unmount with meeting_name:', this.props.meeting_name);
         this.saveCaptionsToFirestore();
     }
 
     async saveCaptionsToFirestore() {
         const { captions } = this.state;
-        const meetingName = 'meeting_name'; // Replace with actual meeting name or logic to fetch it
+        const meetingName = this.props.meeting_name;
         const currentTime = new Date().toISOString();
         const docName = `${meetingName}_${currentTime}`;
         
@@ -77,10 +76,12 @@ function mapStateToProps(state: IReduxState) {
     const isTileView = isLayoutTileView(state);
     const largeVideoParticipant = getLargeVideoParticipant(state);
     const localParticipant = getLocalParticipant(state);
+    const meeting_name = getConferenceName(state);
 
     return {
         ..._abstractMapStateToProps(state),
-        _isLifted: Boolean(largeVideoParticipant && largeVideoParticipant?.id !== localParticipant?.id && !isTileView)
+        _isLifted: Boolean(largeVideoParticipant && largeVideoParticipant?.id !== localParticipant?.id && !isTileView),
+        meeting_name: meeting_name || 'default_meeting_name'
     };
 }
 
