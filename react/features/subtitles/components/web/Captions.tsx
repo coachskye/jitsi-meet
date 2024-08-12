@@ -37,6 +37,7 @@ class Captions extends AbstractCaptions<IProps> {
      * @returns {ReactElement} - The React element which displays the text.
      */
     _renderParagraph(id: string, text: string): ReactElement {
+        console.log('Render Paragraph-->' , text);
         return (
             <p key = { id }>
                 <span>{ text }</span>
@@ -56,7 +57,7 @@ class Captions extends AbstractCaptions<IProps> {
         const className = this.props._isLifted
             ? 'transcription-subtitles lifted'
             : 'transcription-subtitles';
-
+      console.log('Paragraph Values is -->' , paragraphs);
         return (
             <div className = { className } >
                 { paragraphs }
