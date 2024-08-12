@@ -122,19 +122,8 @@ interface IProps extends AbstractProps, WithTranslation {
 
     _videomuted : boolean;
 
-    _virtualbackground : IVirtualBackground,
-    
-    /**
-     * Whether local participant is requesting to see subtitles.
-     */
-    _requestingSubtitles: boolean;
+    _virtualbackground : IVirtualBackground;
 
-    /**
-     * Transcript texts formatted with participant's name and final content.
-     * Mapped by id just to have the keys for convenience during the rendering
-     * process.
-     */
-    _transcripts?: Map<string, string>;
 }
 
 /**
@@ -143,7 +132,6 @@ interface IProps extends AbstractProps, WithTranslation {
 
 interface IState {
     jwtToken: string | null;
-    paragraphs: { id: string; text: string }[]
 }
 class Conference extends AbstractConference<IProps, any> {
     _originalOnMouseMove: Function;
@@ -160,9 +148,7 @@ class Conference extends AbstractConference<IProps, any> {
 
         this.state = {
             jwtToken: null,
-            paragraphs: [],
         };
-       
 
         const { _mouseMoveCallbackInterval } = props;
 
@@ -220,25 +206,16 @@ class Conference extends AbstractConference<IProps, any> {
 
     }
 
-   
-
     /**
      * Calls into legacy UI to update the application layout, if necessary.
      *
      * @inheritdoc
      * returns {void}
-     * 
-     * 
      */
     componentDidUpdate(prevProps: IProps) {
         if (this.props._shouldDisplayTileView
             === prevProps._shouldDisplayTileView) {
             return;
-        }
-        if (prevProps._transcripts !== this.props._transcripts) {
-            const updatedParagraphs = Array.from(this.props._transcripts?.entries() ?? []).map(([id, text]) => ({ id, text }));
-            console.log('Updated store is paragraph  -->' , updatedParagraphs);
-            this.setState({ paragraphs: updatedParagraphs });
         }
 
         // TODO: For now VideoLayout is being called as LargeVideo and Filmstrip
@@ -261,28 +238,6 @@ class Conference extends AbstractConference<IProps, any> {
             document.removeEventListener(name, this._onFullScreenChange));
 
         APP.conference.isJoined() && this.props.dispatch(hangup());
-
-
-        const saveTranscriptsToFirestore = async () => {
-            const { paragraphs } = this.state;
-            const { _roomName } = this.props;
-    
-            try {
-                // Format the document name
-                const timestamp = new Date().toISOString();
-                const docName = `${_roomName}_${timestamp}`;
-    
-                // Save data to Firestore
-                const docRef = doc(db, 'jitsimeetingTranscriptions', docName);
-                await setDoc(docRef, { transcripts: paragraphs });
-    
-                console.log('Transcripts saved to Firestore:', docName);
-            } catch (error) {
-                console.error('Error saving transcripts to Firestore:', error);
-            }
-        };
-    
-        saveTranscriptsToFirestore();
     }
 
     /**
@@ -320,10 +275,6 @@ class Conference extends AbstractConference<IProps, any> {
         const segments = pathName.split('/').filter(segment => segment);
         const roomName = segments[segments.length - 1];
         const { jwtToken } = this.state;
-
-        const { _requestingSubtitles, _transcripts} = this.props;
-        const { paragraphs } = this.state;
-        
 
         console.log('JWT Token:', jwtToken);
         // const [useridfromtoken , setuseridfrom] = useState('');
@@ -660,29 +611,7 @@ class Conference extends AbstractConference<IProps, any> {
 
       
 
-function _constructTranscripts(state: IReduxState): Map<string, string> {
-    const { _transcriptMessages } = state['features/subtitles'];
-    const transcripts = new Map();
 
-    for (const [ id, transcriptMessage ] of _transcriptMessages) {
-        if (transcriptMessage) {
-            let text = `${transcriptMessage.participantName}: `;
-
-            if (transcriptMessage.final) {
-                text += transcriptMessage.final;
-            } else {
-                const stable = transcriptMessage.stable || '';
-                const unstable = transcriptMessage.unstable || '';
-
-                text += stable + unstable;
-            }
-
-            transcripts.set(id, text);
-        }
-    }
-
-    return transcripts;
-}
 
 /**
  * Maps (parts of) the Redux state to the associated props for the
@@ -700,8 +629,7 @@ function _mapStateToProps(state: IReduxState) {
     const { preferredVideoQuality } = state['features/video-quality'];
     const _audioMuted = isLocalTrackMuted(state['features/base/tracks'], MEDIA_TYPE.AUDIO);
     const _videomuted = isLocalTrackMuted(state['features/base/tracks'], MEDIA_TYPE.VIDEO);
-    const { _requestingSubtitles } = state['features/subtitles'];
-    const transcripts = _constructTranscripts(state);
+
     return {
         ...abstractMapStateToProps(state),
         _backgroundAlpha: backgroundAlpha,
@@ -716,11 +644,7 @@ function _mapStateToProps(state: IReduxState) {
         _qualityVideo: preferredVideoQuality,
         _audioMuted:_audioMuted,
         _videomuted:_videomuted,
-        _virtualbackground : virtualBackground,
-        _requestingSubtitles,
-
-        // avoid re-renders by setting to prop new empty Map instances.
-        _transcripts: transcripts.size === 0 ? undefined : transcripts
+        _virtualbackground : virtualBackground
     };
 }
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { WithTranslation } from 'react-i18next';
 import { connect } from 'react-redux';
 import { makeStyles } from 'tss-react/mui';
@@ -43,6 +43,7 @@ import OverflowMenuButton from './OverflowMenuButton';
 import Separator from './Separator';
 import { Button } from '@mui/material';
 import { ICON_CLOUD, support_icon, toolopenicon } from '../../../recording/components/Recording/styles.web';
+import { getConferenceName } from '../../../base/conference/functions';
 
 
 /**
@@ -151,6 +152,20 @@ interface IProps extends WithTranslation {
     toolbarButtons: Array<string>;
 
     isCoach: string;
+
+     /**
+     * Whether local participant is requesting to see subtitles.
+     */
+     _requestingSubtitles: boolean;
+
+     /**
+      * Transcript texts formatted with participant's name and final content.
+      * Mapped by id just to have the keys for convenience during the rendering
+      * process.
+      */
+     _transcripts?: Map<string, string>;
+
+     _meeting_name: string;
 }
 
 const useStyles = makeStyles()(() => {
@@ -210,12 +225,30 @@ const Toolbox = ({
     dispatch,
     t,
     toolbarButtons,
-    isCoach
+    isCoach,
+    _meeting_name,
+    _transcripts,
+    _requestingSubtitles
+
 }: IProps) => {
     const { classes, cx } = useStyles();
     const _toolboxRef = useRef<HTMLDivElement>(null);
+    const [paragraphs, setParagraphs] = useState<{ id: string; text: string }[]>([]);
 
     useKeyboardShortcuts(toolbarButtons);
+
+    useEffect(() => {
+        // Update paragraphs state when _transcripts change
+        if (_transcripts) {
+            const newParagraphs = Array.from(_transcripts).map(([id, text]) => ({ id, text }));
+            console.log('New Paragraph is 123321-->' , newParagraphs);
+            setParagraphs(newParagraphs);
+        }
+    }, [_transcripts]);
+
+    useEffect(()=>{
+  console.log('paragraphs Array is 1234-->' , paragraphs);
+    },[paragraphs])
 
     useEffect(() => {
         if (!_visible) {
@@ -514,6 +547,31 @@ function getVisibleButtons() {
     );
 };
 
+
+function _constructTranscripts(state: IReduxState): Map<string, string> {
+    const { _transcriptMessages } = state['features/subtitles'];
+    const transcripts = new Map();
+
+    for (const [ id, transcriptMessage ] of _transcriptMessages) {
+        if (transcriptMessage) {
+            let text = `${transcriptMessage.participantName}: `;
+
+            if (transcriptMessage.final) {
+                text += transcriptMessage.final;
+            } else {
+                const stable = transcriptMessage.stable || '';
+                const unstable = transcriptMessage.unstable || '';
+
+                text += stable + unstable;
+            }
+
+            transcripts.set(id, text);
+        }
+    }
+
+    return transcripts;
+}
+
 /**
  * Maps (parts of) the redux state to {@link Toolbox}'s React {@code Component}
  * props.
@@ -527,7 +585,10 @@ function _mapStateToProps(state: IReduxState, ownProps: any) {
     const { conference } = state['features/base/conference'];
     const { isNarrowLayout } = state['features/base/responsive-ui'];
     const endConferenceSupported = conference?.isEndConferenceSupported() && isLocalParticipantModerator(state);
+    const { _requestingSubtitles } = state['features/subtitles'];
+    const transcripts = _constructTranscripts(state);
 
+    const meeting_name = getConferenceName(state);
     const {
         customToolbarButtons,
         iAmRecorder,
@@ -564,7 +625,10 @@ function _mapStateToProps(state: IReduxState, ownProps: any) {
         _reactionsEnabled,
         _shiftUp: state['features/toolbox'].shiftUp,
         _toolbarButtons: toolbarButtons,
-        _visible: isToolboxVisible(state)
+        _visible: isToolboxVisible(state),
+        _transcripts: transcripts,
+        _meeting_name: meeting_name,
+        _requestingSubtitles: _requestingSubtitles
     };
 }
 
