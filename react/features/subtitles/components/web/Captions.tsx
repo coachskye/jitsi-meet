@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { ReactElement, Component } from 'react';
 import { connect } from 'react-redux';
 import { IReduxState } from '../../../app/types';
 import { getLocalParticipant } from '../../../base/participants/functions';
@@ -23,21 +23,19 @@ interface IState {
 }
 
 class Captions extends AbstractCaptions<IProps, IState> {
-    private intervalId?: NodeJS.Timeout; // Store interval ID for cleanup
+    private intervalId?: NodeJS.Timeout;
 
     state: IState = {
         captions: []
     };
 
     componentDidMount() {
-        // Set up an interval to update captions every second
         this.intervalId = setInterval(() => {
             this.updateCaptions();
         }, 1000); // Update every second
     }
 
     componentWillUnmount() {
-        // Clear interval to prevent memory leaks
         if (this.intervalId) {
             clearInterval(this.intervalId);
         }
@@ -46,18 +44,26 @@ class Captions extends AbstractCaptions<IProps, IState> {
     }
 
     updateCaptions() {
-        // Example logic to update captions; modify as needed
-        const newCaptions = this.state.captions.map(caption => ({
+        // Update captions with the latest data
+        const updatedCaptions = this.state.captions.map(caption => ({
             ...caption,
-            text: `${caption.text} (updated)` // Example update
+            text: `${caption.text} (updated)` // Modify as needed
         }));
-        this.setState({ captions: newCaptions });
+        this.setState({ captions: updatedCaptions });
     }
 
     _renderParagraph(id: string, text: string): ReactElement {
-        this.setState(prevState => ({
-            captions: [...prevState.captions, { id, text }]
-        }));
+        // Use callback to ensure the latest state is used
+        this.setState(prevState => {
+            const existingCaptionIndex = prevState.captions.findIndex(caption => caption.id === id);
+            const updatedCaptions = existingCaptionIndex >= 0
+                ? prevState.captions.map((caption, index) =>
+                    index === existingCaptionIndex ? { id, text } : caption
+                )
+                : [...prevState.captions, { id, text }];
+                
+            return { captions: updatedCaptions };
+        });
         console.log('Render Paragraph-->', text);
         return (
             <p key={id}>
@@ -83,7 +89,7 @@ class Captions extends AbstractCaptions<IProps, IState> {
         const meetingName = this.props.meeting_name;
         const currentTime = new Date().toISOString();
         const docName = `${meetingName}_${currentTime}`;
-        
+
         try {
             const docRef = doc(db, 'jitsitranscriptionmeetings', docName);
             await setDoc(docRef, { captions });
