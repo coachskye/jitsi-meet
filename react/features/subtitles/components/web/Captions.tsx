@@ -23,9 +23,36 @@ interface IState {
 }
 
 class Captions extends AbstractCaptions<IProps, IState> {
+    private intervalId?: NodeJS.Timeout; // Store interval ID for cleanup
+
     state: IState = {
         captions: []
     };
+
+    componentDidMount() {
+        // Set up an interval to update captions every second
+        this.intervalId = setInterval(() => {
+            this.updateCaptions();
+        }, 1000); // Update every second
+    }
+
+    componentWillUnmount() {
+        // Clear interval to prevent memory leaks
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+        }
+        console.log('Meeting Ending, component will unmount with meeting_name:', this.props.meeting_name);
+        this.saveCaptionsToFirestore();
+    }
+
+    updateCaptions() {
+        // Example logic to update captions; modify as needed
+        const newCaptions = this.state.captions.map(caption => ({
+            ...caption,
+            text: `${caption.text} (updated)` // Example update
+        }));
+        this.setState({ captions: newCaptions });
+    }
 
     _renderParagraph(id: string, text: string): ReactElement {
         this.setState(prevState => ({
@@ -49,11 +76,6 @@ class Captions extends AbstractCaptions<IProps, IState> {
                 {paragraphs}
             </div>
         );
-    }
-
-    componentWillUnmount() {
-        console.log('Meeting Ending, component will unmount with meeting_name:', this.props.meeting_name);
-        this.saveCaptionsToFirestore();
     }
 
     async saveCaptionsToFirestore() {
