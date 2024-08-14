@@ -269,6 +269,31 @@ class Conference extends AbstractConference<IProps, any> {
         
         // Extract the path name (which includes '/LogicalNotebooksEncounterTenderly')
         const pathName = url.pathname;
+
+        const extractIDs = (path: string) => {
+            // Remove leading and trailing slashes
+            const trimmedPath = path.replace(/^\/|\/$/g, '');
+            
+            // Split the path by '-' and extract the CoachID and ClientID
+            const segments = trimmedPath.split('-');
+            
+            if (segments.length !== 2) {
+              throw new Error('URL format is incorrect');
+            }
+          
+            const CoachID = segments[0];
+            const ClientID = segments[1];
+          
+            return { CoachID, ClientID };
+          };
+          
+       
+            const { CoachID, ClientID } = extractIDs(pathName);
+            console.log('CoachID:', CoachID);
+            console.log('ClientID:', ClientID);
+          
+
+
         
         // console.log('is Audio Muted inside the Conference -->' , conference?.isStartAudioMuted());
         // Split the path name by '/' and get the last segment
@@ -337,6 +362,8 @@ class Conference extends AbstractConference<IProps, any> {
             const userid = extractNameFromToken(jwtToken);
 
             const isCoach = extractCoachFromToken(jwtToken);
+
+
            
         
             console.log('Extracted coach Value from -->:',isCoach);
@@ -482,7 +509,7 @@ class Conference extends AbstractConference<IProps, any> {
 
                     <CalleeInfoContainer  />
 
-                    { _showPrejoin && <Prejoin/>}
+                    { _showPrejoin && <Prejoin  CoachID={CoachID} ClientID={ClientID} isCoach={isCoach}/>}
                     { _showLobby && <LobbyScreen />}
                 </div>
                 <ParticipantsPane />

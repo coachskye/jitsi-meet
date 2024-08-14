@@ -11,7 +11,8 @@ import {
     SET_OVERFLOW_DRAWER,
     SET_OVERFLOW_MENU_VISIBLE,
     SET_TOOLBAR_HOVERED,
-    SET_TOOLBOX_TIMEOUT
+    SET_TOOLBOX_TIMEOUT,
+    SET_TRANSCRIBER_TEXT
 } from './actionTypes';
 import { setToolboxVisible } from './actions.web';
 import { getToolbarTimeout } from './functions.web';
@@ -60,6 +61,13 @@ export function fullScreenChanged(fullScreen: boolean) {
     return {
         type: FULL_SCREEN_CHANGED,
         fullScreen
+    };
+}
+
+export function setTranscriberText(transcriber: {id:string , text:string}[]) {
+    return {
+        type: SET_TRANSCRIBER_TEXT,
+        transcriber
     };
 }
 

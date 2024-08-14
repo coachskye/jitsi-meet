@@ -185,8 +185,14 @@ interface IProps {
     
     _videomuted: boolean,
 
-    _localtrack: any
+    _localtrack: any,
 
+
+    CoachID: string,
+
+    ClientID: string,
+
+    isCoach: string
 
 
 }
@@ -344,7 +350,10 @@ const Prejoin = ({
     _gumPending,
     _audioMuted,
     _videomuted,
-    _localtrack
+    _localtrack,
+    isCoach,
+    CoachID,
+    ClientID
    
 }: IProps) => {
     const showDisplayNameField = useMemo(
@@ -365,7 +374,8 @@ const Prejoin = ({
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
     const [selectedDeviceId2, setSelectedDeviceId2] = useState<string>('');
    const [tokenfromurl , settokenfromurl] = useState('');
-
+   const [firstName , setFirstName] = useState('');
+   const [lastName , setlastName] = useState('');
    const [userextracted , setuserextracted] = useState('');
 
     console.log('Value of Room state -->' , _getroominfo);
@@ -484,6 +494,46 @@ if (jwtToken) {
 
    // Assuming NoiseCancellation is a boolean
   console.log('Participant id is -->', participantId)
+
+
+  useEffect(()=>{
+   if(isCoach === 'true' && CoachID && ClientID){
+    fetchName(ClientID);
+   }
+   else if(isCoach === 'false'&& CoachID && ClientID){
+    fetchName(CoachID);
+   }
+  },[isCoach])
+
+
+
+  const fetchName = async (Id: string)=>{
+  try{
+    const docRef = doc(db, 'userData', Id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        const firstName = data.firstName;
+        const lastName = data.lastName;
+
+        console.log('First Name is -->', firstName);
+        console.log('LastName is  -->' , lastName);
+
+        setFirstName(firstName);
+        setlastName(lastName);
+    }
+  }catch(error){
+    console.error('Error fetching document:', error);
+  }
+  }
+
+
+//   useEffect(()=>{
+//       if(IDtofetch){
+//         fetchName(IDtofetch);
+//       }
+//   },[IDtofetch])
   useEffect(() => {
     const fetchData = async () => {
         try {
@@ -704,7 +754,7 @@ if (jwtToken) {
         <PreMeetingScreen
             showDeviceStatus = { deviceStatusVisible }
             showUnsafeRoomWarning = { showUnsafeRoomWarning }
-            title = {'Coaching session with Caitlin Decker' }
+            title = {`Coaching session with ${firstName} ${lastName} ` }
             videoMuted = { !showCameraPreview }
             videoTrack = { videoTrack }>
             {/* <div

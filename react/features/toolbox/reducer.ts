@@ -12,7 +12,9 @@ import {
     SET_TOOLBOX_SHIFT_UP,
     SET_TOOLBOX_TIMEOUT,
     SET_TOOLBOX_VISIBLE,
-    TOGGLE_TOOLBOX_VISIBLE
+    TOGGLE_TOOLBOX_VISIBLE,
+    SET_TRANSCRIBER_TEXT
+
 } from './actionTypes';
 
 /**
@@ -75,7 +77,9 @@ const INITIAL_STATE = {
      *
      * @type {boolean}
      */
-    visible: false
+    visible: false,
+
+    transcribertext: [],
 };
 
 export interface IToolboxState {
@@ -88,6 +92,7 @@ export interface IToolboxState {
     shiftUp: boolean;
     timeoutID?: number | null;
     visible: boolean;
+    transcribertext: {id:string , text: string}[]
 }
 
 ReducerRegistry.register<IToolboxState>(
@@ -148,12 +153,20 @@ ReducerRegistry.register<IToolboxState>(
                 shiftUp: action.shiftUp
             };
 
+        case SET_TRANSCRIBER_TEXT:
+             return {...state, 
+             transcribertext:action.transcribertext};
+
         case SET_TOOLBOX_VISIBLE:
             return set(state, 'visible', action.visible);
 
         case TOGGLE_TOOLBOX_VISIBLE:
             return set(state, 'visible', !state.visible);
+
+       
+        
         }
+        
 
         return state;
     });
