@@ -278,7 +278,9 @@ class Conference extends AbstractConference<IProps, any> {
             const segments = trimmedPath.split('-');
             
             if (segments.length !== 2) {
-              throw new Error('URL format is incorrect');
+                const CoachID = '';
+            const ClientID = '';
+              return {CoachID , ClientID};
             }
           
             const CoachID = segments[0];

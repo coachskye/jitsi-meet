@@ -509,11 +509,13 @@ if (jwtToken) {
 
   const fetchName = async (Id: string)=>{
   try{
+    console.log('Fetch Name');
     const docRef = doc(db, 'userData', Id);
     const docSnap = await getDoc(docRef);
-
+    console.log('Doc Snap -->' , docSnap);
     if (docSnap.exists()) {
         const data = docSnap.data();
+        console.log('Data is -->' , data);
         const firstName = data.firstName;
         const lastName = data.lastName;
 
